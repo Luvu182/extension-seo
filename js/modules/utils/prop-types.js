@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 /**
  * Simple PropTypes implementation for runtime type checking
  * Since we're not using the prop-types package
@@ -167,7 +169,7 @@ export const PropTypes = {
  * @param {string} componentName - Component name for error messages
  */
 export function validateProps(props, propTypes, componentName) {
-  if (!propTypes || process.env.NODE_ENV === 'production') return;
+  if (!propTypes) return; // Remove process.env check - not available in browser
   
   for (const propName in propTypes) {
     const error = propTypes[propName](props, propName, componentName);
