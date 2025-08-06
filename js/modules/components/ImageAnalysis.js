@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 /**
  * ImageAnalysis Component - Displays image analysis for a webpage
  * @param {Object} props - Component props

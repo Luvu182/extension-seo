@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 /**
  * Component for checking link statuses
  * @param {Object} props - Component props

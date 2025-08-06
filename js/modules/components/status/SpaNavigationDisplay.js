@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 // Import dependencies
 import { RefreshButton } from './RefreshButton.js';
 import { styles } from '../../styles.js';

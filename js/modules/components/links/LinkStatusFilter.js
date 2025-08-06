@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 /**
  * Component for filtering links by status code
  * @param {Object} props - Component props

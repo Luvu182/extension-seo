@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 // Import dependencies
 // React is global
 import { createElement as h } from '../utils.js'; // Use alias 'h' for React.createElement if preferred, or keep 'createElement'

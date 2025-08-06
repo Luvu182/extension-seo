@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 import { styles } from '../../styles.js';
 import { StatItem } from '../common/StatItem.js';
 import { ImageAnalysisService } from '../../tabs/content-tab.js';

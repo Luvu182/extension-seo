@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 /**
  * Component to display a loading spinner and message
  * 

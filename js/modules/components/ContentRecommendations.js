@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 /**
  * ContentRecommendations Component - Displays SEO content recommendations
  * @param {Object} props - Component props

@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 /**
  * TextAnalysis Component - Displays text content analysis for a webpage
  * @param {Object} props - Component props

@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 // Import dependencies
 import { styles } from '../styles.js';
 import { performanceService } from '../services/performance-service.js';

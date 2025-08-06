@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 // Content tab module for SEO AI Assistant
 import { styles } from '../styles.js';
 import { dataService } from '../data-service.js';

@@ -9,8 +9,20 @@
 // PageSpeed Insights API endpoints
 const PAGESPEED_API_ENDPOINT = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
 
-// API key for PageSpeed Insights
-const PAGESPEED_API_KEY = 'AIzaSyByoEPORQ3VP3ADB2tGsLtQGy3n1S-uKRc';
+// API key for PageSpeed Insights - should be configured via environment or secure storage
+// WARNING: Never hardcode API keys in production code
+let PAGESPEED_API_KEY = null;
+
+// Function to get API key from storage
+async function getApiKey() {
+  try {
+    const result = await chrome.storage.local.get('pagespeedApiKey');
+    return result.pagespeedApiKey || null;
+  } catch (error) {
+    console.error('[PerformanceService] Error retrieving API key:', error);
+    return null;
+  }
+}
 
 // Default metrics values when data is missing
 // These are reasonable defaults that won't skew the performance score
@@ -46,9 +58,10 @@ class PerformanceService {
     this.isLoadingPageSpeed = false;
     this.pageSpeedError = null;
     
-    // Initialize cache for PageSpeed results
+    // Initialize cache for PageSpeed results with size limit
     this.resultsCache = {};
     this.CACHE_EXPIRY = 30 * 60 * 1000; // 30 minutes
+    this.MAX_CACHE_SIZE = 50; // Limit cache to 50 URLs to prevent memory issues
     
     // Bind methods
     this.fetchPageSpeedData = this.fetchPageSpeedData.bind(this);
@@ -230,8 +243,14 @@ class PerformanceService {
           apiUrl.searchParams.append('strategy', strategy);
           apiUrl.searchParams.append('category', 'performance');
           
-          // Add API key
-          apiUrl.searchParams.append('key', PAGESPEED_API_KEY);
+          // Add API key if available
+          const apiKey = PAGESPEED_API_KEY || await getApiKey();
+          if (apiKey) {
+            apiUrl.searchParams.append('key', apiKey);
+          } else {
+            console.warn('[PerformanceService] No API key available for PageSpeed Insights');
+            // API can still work without key but with rate limits
+          }
           
           console.log(`[PerformanceService] Fetching PageSpeed data for: ${cleanUrl} (Attempt ${retryCount + 1}/${MAX_RETRIES + 1})`);
           
@@ -261,11 +280,23 @@ class PerformanceService {
           // Parse response
           this.pageSpeedData = this.parsePageSpeedResponse(data);
           
-          // Store in cache
+          // Store in cache with size limit check
           this.resultsCache[cacheKey] = {
             data: this.pageSpeedData,
             timestamp: Date.now()
           };
+          
+          // Clean up old cache entries if we exceed the size limit
+          const cacheKeys = Object.keys(this.resultsCache);
+          if (cacheKeys.length > this.MAX_CACHE_SIZE) {
+            // Sort by timestamp and remove oldest entries
+            const sortedKeys = cacheKeys.sort((a, b) => 
+              this.resultsCache[a].timestamp - this.resultsCache[b].timestamp
+            );
+            const keysToRemove = sortedKeys.slice(0, cacheKeys.length - this.MAX_CACHE_SIZE);
+            keysToRemove.forEach(key => delete this.resultsCache[key]);
+            console.log(`[PerformanceService] Cleaned up ${keysToRemove.length} old cache entries`);
+          }
           
           // Save to chrome.storage for persistence
           try {

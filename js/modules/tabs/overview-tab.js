@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 // Import dependencies
 // Note: React and ReactDOM are expected to be global via popup.html script tags
 import { createElement as h } from '../utils.js';

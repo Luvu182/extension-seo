@@ -1,7 +1,8 @@
 'use strict';
 
-// Import the main App component
-import { App } from 'js/modules/components/App.js';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { App } from './modules/components/App.js';
 
 /**
  * Add animation styles from external CSS file
@@ -28,8 +29,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add animation styles before rendering React
     addAnimationStyles();
     
-    // Render the main React app
-    ReactDOM.render(React.createElement(App), rootElement);
+    // Render the main React app using React 18 API
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(React.createElement(App));
     console.log("[popup.js] Rendered main App component");
   } else {
     console.error('[popup.js] Root element not found for React rendering');

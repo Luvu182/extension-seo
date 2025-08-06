@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 import { styles } from '../../styles.js';
 import { HeadingStructure } from '../HeadingStructure.js';
 import { StatItem } from '../common/StatItem.js';

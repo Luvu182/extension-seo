@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 /**
  * ImageIssueCard - Displays image issues with examples
  * 

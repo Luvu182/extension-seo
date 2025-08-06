@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 /**
  * ContentTabHeader - Tab navigation for content tab
  * 

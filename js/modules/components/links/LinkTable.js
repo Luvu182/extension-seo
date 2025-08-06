@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 import { styles } from '../../styles.js';
 import { linkService } from '../../services/link-service.js';
 

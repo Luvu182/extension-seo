@@ -1,7 +1,0 @@
-"filename", "language", "JavaScript", "comment", "blank", "total"
-"c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\src\content\analyzers\web-vitals-analyzer.js", "JavaScript", -236, -67, -58, -361
-"c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\src\content\detectors\spa-detector.js", "JavaScript", 20, 13, 0, 33
-"c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\src\content\extractors\seo-extractor.js", "JavaScript", -4, -8, -19, -31
-"c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\src\content\utils\dom-utils.js", "JavaScript", 16, -14, -3, -1
-"c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\src\shared\utils\string-utils.js", "JavaScript", 28, 17, 10, 55
-"Total", "-", -176, -59, -70, -305

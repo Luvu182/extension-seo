@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 /**
  * RecommendationItem - Displays a recommendation with priority styling
  * 

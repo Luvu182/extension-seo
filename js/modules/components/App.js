@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 // Import core modules
 import { store } from '../store.js';
 import { styles } from '../styles.js';

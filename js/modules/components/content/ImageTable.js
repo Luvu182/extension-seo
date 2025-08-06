@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 import { ImageStatusFilter } from './ImageStatusFilter.js'; 
 import { ToggleSwitch } from '../common/ToggleSwitch.js'; // Import ToggleSwitch
 

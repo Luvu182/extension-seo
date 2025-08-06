@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 /**
  * Reusable button component for refreshing the page
  * 

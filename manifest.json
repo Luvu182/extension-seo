@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "SEO AI Assistant ",
+  "name": "SEO AI Assistant",
   "version": "1.7.3",
   "description": "SEO analysis tool powered by SEOONTOP",
   "icons": {
@@ -30,12 +30,13 @@
     "https://*/*"
   ],
   "background": {
-    "service_worker": "background.bundle.js"
+    "service_worker": "src/background/background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["content.bundle.js"],
+      "js": ["src/content/content.js"],
       "run_at": "document_idle"
     }
   ],

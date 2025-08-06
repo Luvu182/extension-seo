@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 // Settings tab module for SEO AI Assistant
 
 // Import dependencies

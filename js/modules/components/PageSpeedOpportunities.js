@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react';
+
 // Import dependencies
 import { styles } from '../styles.js';
 import { PageSpeedOpportunity } from './PageSpeedOpportunity.js';
