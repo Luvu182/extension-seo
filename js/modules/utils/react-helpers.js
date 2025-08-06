@@ -1,6 +1,7 @@
 'use strict';
 
 import React from 'react';
+import { logger } from '../../../src/shared/utils/logger.js';
 
 /**
  * Create a memoized component
@@ -40,7 +41,7 @@ export class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    logger.error('ErrorBoundary', 'Error caught by boundary:', error, errorInfo);
   }
 
   render() {

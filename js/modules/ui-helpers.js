@@ -1,5 +1,7 @@
 'use strict';
 
+import { logger } from '../../src/shared/utils/logger.js';
+
 // UI helpers for SEO AI Assistant
 
 // Import dependencies
@@ -116,7 +118,7 @@ export function showError(container, error) {
     onClick: () => {
       // We need a way to trigger refresh without relying on the global namespace
       // For now, let's just log it. This needs further refactoring.
-      console.log("Retry button clicked - refresh logic needs update");
+      logger.info('UIHelpers', 'Retry button clicked - refresh logic needs update');
       // Potential future approach: Dispatch an action to the store
       // store.dispatch({ type: 'REFRESH_DATA_REQUESTED' });
     }

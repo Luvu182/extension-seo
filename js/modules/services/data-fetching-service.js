@@ -2,6 +2,7 @@
 
 import { store } from '../store.js';
 import { dataService } from '../data-service.js';
+import { logger } from '../../../src/shared/utils/logger.js';
 
 /**
  * Service for fetching SEO data from extension components
@@ -18,7 +19,7 @@ class DataFetchingService {
    */
   async requestLatestWebVitals() {
     try {
-      console.log('[DataFetching] Requesting Web Vitals...');
+      logger.info('DataFetching', 'Requesting Web Vitals...');
       
       const response = await this.sendMessage({
         action: 'getLatestWebVitals',
@@ -29,7 +30,7 @@ class DataFetchingService {
         this.updateWebVitals(response.webVitals, response.timestamp);
       }
     } catch (error) {
-      console.error('[DataFetching] Web Vitals request failed:', error);
+      logger.error('DataFetching', 'Web Vitals request failed:', error);
     }
   }
 
@@ -37,7 +38,7 @@ class DataFetchingService {
    * Refresh all SEO data
    */
   async refreshData() {
-    console.log('[DataFetching] Refreshing data...');
+    logger.info('DataFetching', 'Refreshing data...');
     store.setStateSlice('isLoading', true);
 
     try {
@@ -50,14 +51,14 @@ class DataFetchingService {
       const success = await this.refreshFromContentScript(tab.id);
       
       if (!success) {
-        console.log('[DataFetching] Content script failed, loading from background');
+        logger.info('DataFetching', 'Content script failed, loading from background');
       }
       
       // Always load from background (it may have fresher data)
       await this.loadFromBackground(tab.url);
       
     } catch (error) {
-      console.error('[DataFetching] Refresh failed:', error);
+      logger.error('DataFetching', 'Refresh failed:', error);
       this.setErrorState(error.message);
     }
   }
@@ -88,10 +89,10 @@ class DataFetchingService {
         isLoading: false
       });
 
-      console.log('[DataFetching] Data loaded successfully');
+      logger.info('DataFetching', 'Data loaded successfully');
       
     } catch (error) {
-      console.error('[DataFetching] Background load failed:', error);
+      logger.error('DataFetching', 'Background load failed:', error);
       this.setErrorState(error.message);
     }
   }
@@ -108,7 +109,7 @@ class DataFetchingService {
 
       // If failed, inject content script and retry
       if (!response) {
-        console.log('[DataFetching] Injecting content script...');
+        logger.info('DataFetching', 'Injecting content script...');
         await this.injectContentScript(tabId);
         
         // Wait for script initialization
@@ -124,7 +125,7 @@ class DataFetchingService {
       return !!response;
       
     } catch (error) {
-      console.error('[DataFetching] Content script refresh failed:', error);
+      logger.error('DataFetching', 'Content script refresh failed:', error);
       return false;
     }
   }
@@ -181,7 +182,7 @@ class DataFetchingService {
     return new Promise((resolve) => {
       chrome.runtime.sendMessage(message, (response) => {
         if (chrome.runtime.lastError) {
-          console.error('[DataFetching] Message error:', chrome.runtime.lastError);
+          logger.error('DataFetching', 'Message error:', chrome.runtime.lastError);
           resolve(null);
         } else {
           resolve(response);

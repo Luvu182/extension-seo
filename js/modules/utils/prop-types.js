@@ -1,6 +1,7 @@
 'use strict';
 
 import React from 'react';
+import { logger } from '../../../src/shared/utils/logger.js';
 
 /**
  * Simple PropTypes implementation for runtime type checking
@@ -174,7 +175,7 @@ export function validateProps(props, propTypes, componentName) {
   for (const propName in propTypes) {
     const error = propTypes[propName](props, propName, componentName);
     if (error) {
-      console.error(error.message);
+      logger.error('PropTypes', error.message);
     }
   }
 }

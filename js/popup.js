@@ -3,6 +3,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './modules/components/App.js';
+import { logger } from '../src/shared/utils/logger.js';
 
 /**
  * Add animation styles from external CSS file
@@ -16,7 +17,7 @@ function addAnimationStyles() {
     linkElement.rel = 'stylesheet';
     linkElement.href = 'css/animations.css'; // Load from external file
     document.head.appendChild(linkElement);
-    console.log("[popup.js] Added animations stylesheet link");
+    logger.info('popup', 'Added animations stylesheet link');
   }
 }
 
@@ -32,8 +33,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Render the main React app using React 18 API
     const root = ReactDOM.createRoot(rootElement);
     root.render(React.createElement(App));
-    console.log("[popup.js] Rendered main App component");
+    logger.info('popup', 'Rendered main App component');
   } else {
-    console.error('[popup.js] Root element not found for React rendering');
+    logger.error('popup', 'Root element not found for React rendering');
   }
 });

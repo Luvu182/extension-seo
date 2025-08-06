@@ -1,5 +1,7 @@
 'use strict';
 
+import { logger } from '../../src/shared/utils/logger.js';
+
 /**
  * Centralized state management store
  * Implements a simple pub-sub pattern with Chrome storage integration
@@ -56,7 +58,7 @@ function getState() {
  */
 function getStateSlice(sliceName) {
   if (!_state.hasOwnProperty(sliceName)) {
-    console.warn(`[Store] State slice "${sliceName}" does not exist`);
+    logger.warn('Store', `State slice "${sliceName}" does not exist`);
     return null;
   }
   return deepClone(_state[sliceName]);
@@ -74,7 +76,7 @@ function setState(updates) {
     try {
       callback(_state, oldState);
     } catch (error) {
-      console.error('[Store] Subscriber error:', error);
+      logger.error('Store', 'Subscriber error:', error);
     }
   });
   
@@ -89,7 +91,7 @@ function setState(updates) {
  */
 function setStateSlice(sliceName, value) {
   if (!_state.hasOwnProperty(sliceName)) {
-    console.warn(`[Store] State slice "${sliceName}" does not exist`);
+    logger.warn('Store', `State slice "${sliceName}" does not exist`);
     return _state;
   }
   
@@ -101,7 +103,7 @@ function setStateSlice(sliceName, value) {
  */
 function subscribe(callback) {
   if (typeof callback !== 'function') {
-    console.error('[Store] Subscribe requires a function');
+    logger.error('Store', 'Subscribe requires a function');
     return () => {}; // Return no-op unsubscribe
   }
   
@@ -162,7 +164,7 @@ async function persistState() {
       await chrome.storage.local.set({ seoAiAssistantState: _state });
     }
   } catch (error) {
-    console.error('[Store] Failed to persist state:', error);
+    logger.error('Store', 'Failed to persist state:', error);
   }
 }
 
@@ -187,7 +189,7 @@ async function loadFromStorage() {
       return true;
     }
   } catch (error) {
-    console.error('[Store] Failed to load state:', error);
+    logger.error('Store', 'Failed to load state:', error);
   }
   
   return false;
@@ -217,7 +219,7 @@ function handleStorageChange(changes, areaName) {
       
       // Only update if data actually changed
       if (JSON.stringify(newData) !== JSON.stringify(_state.pageData)) {
-        console.log('[Store] Updating pageData from storage change');
+        logger.info('Store', 'Updating pageData from storage change');
         setState({ pageData: newData });
       }
     }
@@ -228,17 +230,17 @@ function handleStorageChange(changes, areaName) {
  * Initialize the store
  */
 async function init() {
-  console.log('[Store] Initializing...');
+  logger.info('Store', 'Initializing...');
   
   // Load saved state
   const loaded = await loadFromStorage();
-  console.log('[Store] Loaded from storage:', loaded);
+  logger.info('Store', 'Loaded from storage:', loaded);
   
   // Set up storage listener
   if (chrome?.storage?.onChanged) {
     _storageListener = handleStorageChange;
     chrome.storage.onChanged.addListener(_storageListener);
-    console.log('[Store] Storage listener added');
+    logger.info('Store', 'Storage listener added');
   }
 }
 
@@ -272,7 +274,7 @@ export const store = {
 
 // Auto-initialize
 init().catch(error => {
-  console.error('[Store] Failed to initialize:', error);
+  logger.error('Store', 'Failed to initialize:', error);
 });
 
 // Clean up on page unload
