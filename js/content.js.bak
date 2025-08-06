@@ -1,0 +1,649 @@
+// Content script for SEO AI Assistant Chrome Extension
+
+// Flag to track if web-vitals measurement has been initiated for this page load
+let webVitalsInitiated = false;
+const WEB_VITALS_SOURCE = 'seo-ai-assistant-web-vitals'; // Identifier for postMessage
+
+// Function to extract and send SEO data using the new action
+async function sendSEOData(source = 'initial') {
+  try {
+    const seoData = await extractPageSEOData(); // Already includes window.location.href
+    console.log(`[content.js] Sending content_update from ${source} for URL: ${seoData.url}`);
+    // Send as a one-way message (no callback needed)
+    chrome.runtime.sendMessage({
+      action: "content_update", // Use the new action name
+      data: seoData
+    });
+  } catch (error) {
+    console.error(`[content.js ${source}] Error extracting/sending SEO data:`, error);
+  }
+}
+
+// Also listen for requests to extract data
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+  if (request.action === "extractSEOData") {
+    // Sử dụng extractPageSEOData bất đồng bộ
+    extractPageSEOData()
+      .then(seoData => {
+        // Gửi phản hồi
+        sendResponse({ success: true, data: seoData });
+
+        // Also update the background script using the new action
+        console.log('[content.js] Sending content_update from extractSEOData request');
+        // Send as a one-way message (no callback needed)
+        chrome.runtime.sendMessage({
+          action: "content_update", // Use the new action name
+          data: seoData
+        });
+      })
+      .catch(error => {
+        console.error("Error extracting SEO data:", error);
+        sendResponse({ success: false, error: error.message });
+      });
+
+    return true; // Keep message channel open for async response
+  }
+  // Removed 'urlChanged' handler - SPA detection is now proactive
+  // Removed 'getWebVitals' handler - initiation now happens in extractPageSEOData
+  // Handle other messages if needed
+  return false; // Indicate synchronous response or no response needed for other actions
+});
+
+// --- SPA Navigation Detection ---
+
+let navigationTimeoutId = null;
+
+function handleSpaNavigation() {
+  // Clear any pending extraction from previous rapid events
+  if (navigationTimeoutId) {
+    clearTimeout(navigationTimeoutId);
+  }
+  // Debounce: Wait a bit for the DOM to potentially settle after URL change
+  navigationTimeoutId = setTimeout(() => {
+    console.log('[content.js] SPA Navigation detected, re-extracting data...');
+    // Reset web vitals flag for the new "page"
+    webVitalsInitiated = false;
+    sendSEOData('spa_navigation'); // Send data using the updated function
+    navigationTimeoutId = null;
+  }, 500); // 500ms delay, adjustable
+}
+
+(function() {
+  const pushState = history.pushState;
+  history.pushState = function() {
+    pushState.apply(history, arguments);
+    window.dispatchEvent(new Event('pushstate')); // Dispatch custom event
+  };
+
+  const replaceState = history.replaceState;
+  history.replaceState = function() {
+    replaceState.apply(history, arguments);
+    window.dispatchEvent(new Event('replacestate')); // Dispatch custom event
+  };
+
+  // Listen for standard and custom navigation events
+  window.addEventListener('popstate', handleSpaNavigation);
+  window.addEventListener('hashchange', handleSpaNavigation);
+  window.addEventListener('pushstate', handleSpaNavigation);
+  window.addEventListener('replacestate', handleSpaNavigation);
+
+  console.log('[content.js] SPA Navigation listeners attached.');
+
+  // --- Mutation Observer for DOM changes ---
+  const observer = new MutationObserver((mutations) => {
+      // We don't need to inspect mutations in detail for now,
+      // just knowing a change happened is enough to trigger the debounced handler.
+      // More complex logic could be added here to filter minor changes.
+      console.log('[content.js] MutationObserver detected DOM change.');
+      handleSpaNavigation(); // Trigger the same debounced handler
+  });
+
+  // Observe the body for subtree and child list changes
+  // Wait a bit for the initial DOM to be ready before observing
+  setTimeout(() => {
+      if (document.body) {
+          observer.observe(document.body, {
+              childList: true,
+              subtree: true
+          });
+          console.log('[content.js] MutationObserver attached to document.body.');
+      } else {
+          console.warn('[content.js] document.body not found when trying to attach MutationObserver.');
+      }
+  }, 1000); // Start observing after 1 second
+
+})();
+
+// --- Initial Data Send ---
+// Send data shortly after script injection (document_idle)
+setTimeout(() => sendSEOData('initial_idle'), 500);
+
+// Also wait for the page to be fully loaded and send again
+window.addEventListener('load', function() {
+  setTimeout(() => sendSEOData('initial_load'), 2000); // Increase delay
+});
+
+
+// --- REMOVED window.addEventListener('message', ...) as it's no longer needed ---
+
+
+// Function to initiate Web Vitals measurement if not already started
+function initiateWebVitalsMeasurement() {
+  if (webVitalsInitiated) {
+    console.log('[content.js] Web Vitals measurement already initiated.');
+    return; // Already started, do nothing
+  }
+  console.log('[content.js] Initiating Web Vitals measurement...');
+  webVitalsInitiated = true; // Set flag
+
+  // Ask background script to inject the library into our ISOLATED world
+  chrome.runtime.sendMessage({ action: "injectWebVitals" }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.error('[content.js] Error requesting library injection:', chrome.runtime.lastError.message);
+      // Handle error appropriately, maybe retry or log
+    } else if (response && response.success) {
+      console.log('[content.js] Library injected. Starting measurement in isolated world.');
+      // --- Start measurement directly in content script ---
+      try {
+        // Check if webVitals is now available in this isolated context
+        if (typeof webVitals === 'undefined') {
+          throw new Error('webVitals library not found in isolated world after injection.');
+        }
+
+        const sendMetricToBackground = (metric) => {
+          console.log(`[content.js] Web Vital Measured: ${metric.name}`, metric.value);
+          chrome.runtime.sendMessage({
+            action: "webVitalsResult",
+            data: { // Ensure data format matches what background expects
+              name: metric.name.toLowerCase(), // Ensure lowercase name
+              value: metric.value
+            }
+          });
+        };
+
+        // Register listeners using the library now available here
+        webVitals.onLCP(sendMetricToBackground, { reportAllChanges: true });
+        webVitals.onFID(sendMetricToBackground); // FID only fires once
+        webVitals.onCLS(sendMetricToBackground, { reportAllChanges: true });
+        webVitals.onTTFB(sendMetricToBackground); // TTFB only fires once
+
+        console.log('[content.js] Web Vitals listeners registered in isolated world.');
+
+      } catch (error) {
+        console.error('[content.js] Error starting webVitals measurement in isolated world:', error);
+        // Handle error appropriately
+      }
+      // --- End measurement logic ---
+    } else {
+      console.error('[content.js] Background script failed to inject library:', response?.error);
+      // Handle error appropriately
+    }
+  });
+}
+
+
+// Function to extract basic SEO data from the current page
+async function extractPageSEOData() {
+  console.log('[content.js] extractPageSEOData called.'); // Add log
+
+  // --- Initiate Web Vitals Measurement ---
+  // Call this early within the extraction process
+  initiateWebVitalsMeasurement();
+  // --- End Web Vitals Initiation ---
+
+
+  // Status code will now be added by the background script
+
+  // Lấy thông tin robots từ meta tag (Safely)
+  const robotsTag = document.querySelector('meta[name="robots"]');
+  const robotsContent = robotsTag?.getAttribute('content') || ''; // Use optional chaining and default value
+  const isNoindex = robotsContent.toLowerCase().includes('noindex');
+  const isNofollow = robotsContent.toLowerCase().includes('nofollow');
+  
+  // Lấy thông tin robots từ X-Robots-Tag HTTP header
+  // Lưu ý: Content script không thể trực tiếp truy cập HTTP headers
+  // Chúng ta sẽ cần sử dụng background script hoặc webRequest API
+  
+  // Lấy canonical URL (Safely)
+  const canonicalTag = document.querySelector('link[rel="canonical"]');
+  const canonicalUrl = canonicalTag?.getAttribute('href') || ''; // Use optional chaining and default value
+  
+  // Kiểm tra tính hợp lệ của canonical URL (Keep existing try...catch for URL parsing)
+  let canonicalValid = false;
+  if (canonicalUrl) {
+    try {
+      // Kiểm tra xem URL có hợp lệ không
+      new URL(canonicalUrl);
+      
+      // Kiểm tra xem canonical URL có phải là URL đầy đủ không
+      canonicalValid = canonicalUrl.startsWith('http://') || canonicalUrl.startsWith('https://');
+      
+      // Kiểm tra xem canonical URL có khớp với URL hiện tại không
+      const currentPath = window.location.pathname + window.location.search;
+      const canonicalPath = new URL(canonicalUrl).pathname + new URL(canonicalUrl).search;
+      if (canonicalPath !== currentPath && !canonicalUrl.includes(window.location.hostname)) {
+        // console.log("Canonical URL doesn't match current page:", canonicalUrl, currentPath); // Keep this potentially useful log? Decided to remove for now.
+      }
+    } catch (e) {
+      console.error("Invalid canonical URL:", canonicalUrl, e);
+    }
+  }
+  
+  // Kiểm tra trạng thái indexable
+  const isIndexable = !isNoindex;
+  
+  // Kiểm tra trạng thái followable
+  const isFollowable = !isNofollow;
+  
+  // Kiểm tra Mobile Friendly (Safely)
+  const viewportMeta = document.querySelector('meta[name="viewport"]');
+  const viewportContent = viewportMeta?.getAttribute('content') || '';
+  const hasMobileViewport = viewportContent.includes('width=device-width');
+  
+  // Thu thập thông tin OpenGraph Tags (Safely)
+  const openGraphTags = {};
+  const ogMetaTags = document.querySelectorAll('meta[property^="og:"]');
+  ogMetaTags.forEach(tag => {
+    // Ensure tag exists and has attributes before accessing
+    const property = tag?.getAttribute('property');
+    const content = tag?.getAttribute('content');
+    if (property && content) {
+      const key = property.replace('og:', '');
+      openGraphTags[key] = content;
+    }
+  });
+  
+  // Thu thập thông tin về AMP (Safely)
+  const ampLink = document.querySelector('link[rel="amphtml"]');
+  const ampUrl = ampLink?.getAttribute('href') || null; // Use optional chaining
+  
+  // Thu thập thông tin về ngôn ngữ trang (Safely)
+  const htmlLang = document.documentElement?.lang || ''; // Check documentElement and default
+  const metaLang = document.querySelector('meta[http-equiv="Content-Language"]');
+  const pageLang = htmlLang || metaLang?.getAttribute('content') || null; // Use optional chaining
+  
+  // Thử thu thập thông tin server (chỉ có thể lấy một phần nhỏ từ client)
+  const serverInfo = {
+    httpVersion: 'HTTP/1.1', // Mặc định là HTTP/1.1, không thể lấy từ client
+    ip: null, // Không thể lấy từ client
+    server: null, // Không thể lấy từ client-side
+    php: null // Không thể lấy từ client-side
+  };
+  
+  // Thu thập thông tin redirect chi tiết
+  let redirect = null;
+  const collectRedirectInfo = () => {
+    let redirectInfo = null;
+    
+    // Sử dụng document.referrer để xác định URL nguồn
+    const referrer = document.referrer;
+    
+    // Sử dụng Navigation Timing API để xác định thông tin redirect
+    if (window.performance) {
+      const navEntries = window.performance.getEntriesByType('navigation');
+      if (navEntries && navEntries.length > 0) {
+        const navEntry = navEntries[0];
+        
+        if (navEntry.redirectCount > 0) {
+          redirectInfo = {
+            count: navEntry.redirectCount
+          };
+          
+          // Lấy thông tin về các redirect từ resource entries
+          if (window.performance.getEntriesByType('resource')) {
+            const resourceEntries = window.performance.getEntriesByType('resource');
+            const redirectEntries = resourceEntries.filter(entry => entry.initiatorType === 'navigation');
+            
+            if (redirectEntries.length > 0) {
+              redirectInfo.entries = redirectEntries.map(entry => ({
+                name: entry.name,
+                startTime: entry.startTime,
+                duration: entry.duration
+              }));
+            }
+          }
+          
+          // Thêm thông tin URL nguồn và URL đích
+          if (referrer) {
+            redirectInfo.fromUrl = referrer;
+          }
+          
+          redirectInfo.url = window.location.href;
+          redirectInfo.initialUrl = navEntry.name;
+          
+          // Thu thập thông tin chi tiết về navigation
+          try {
+            redirectInfo.navigationType = navEntry.type;
+          } catch (e) {
+            console.error("Error getting navigation type:", e);
+          }
+        }
+      } 
+      // Legacy fallback
+      else if (window.performance.navigation) {
+        if (window.performance.navigation.redirectCount > 0) {
+          redirectInfo = {
+            count: window.performance.navigation.redirectCount
+          };
+          
+          if (referrer) {
+            redirectInfo.fromUrl = referrer;
+          }
+          
+          redirectInfo.url = window.location.href;
+          
+          // Thêm thông tin về kiểu navigation
+          switch (window.performance.navigation.type) {
+            case 0: 
+              redirectInfo.navigationType = 'navigate';
+              break;
+            case 1:
+              redirectInfo.navigationType = 'reload';
+              break;
+            case 2:
+              redirectInfo.navigationType = 'back_forward';
+              break;
+          }
+        }
+      }
+    }
+    
+    // Nếu có document.referrer nhưng không có redirect count, có thể là redirect đơn
+    if (!redirectInfo && referrer) {
+      redirectInfo = {
+        count: 1,
+        fromUrl: referrer,
+        url: window.location.href
+      };
+    }
+    
+    // Kiểm tra nếu là cross-domain redirect
+    if (referrer) {
+      try {
+        const currentHost = new URL(window.location.href).hostname;
+        const referrerHost = new URL(referrer).hostname;
+        
+        if (currentHost !== referrerHost) {
+          if (!redirectInfo) {
+            redirectInfo = {};
+          }
+          redirectInfo.crossDomain = true;
+          redirectInfo.fromDomain = referrerHost;
+          redirectInfo.toDomain = currentHost;
+        }
+      } catch (e) {
+        console.error("Error comparing domains:", e);
+      }
+    }
+    
+    return redirectInfo;
+  };
+  
+  redirect = collectRedirectInfo();
+  
+  // Lấy thời gian phản hồi từ performance API
+  let responseTime = new Date().toLocaleString();
+  if (window.performance && window.performance.timing) {
+    const timing = window.performance.timing;
+    const loadTime = timing.loadEventEnd - timing.navigationStart;
+    if (loadTime > 0) {
+      // Tính thời gian tải trang (ms)
+      responseTime = `${new Date().toLocaleString()} (Load: ${loadTime}ms)`;
+    }
+  }
+  
+  // Lấy các thông tin khác
+  const data = {
+    url: window.location.href,
+    title: document.title || '', // Default to empty string if title is missing
+    description: getMetaDescription(), // Already handles missing element
+    responseTime: responseTime,
+    headings: getHeadings(), // Already handles missing elements
+    links: getLinks(),
+    images: getImages(), // Already handles missing elements
+    structured: extractStructuredData(), // Already handles missing elements
+    // Status code and responseDetailStatusCode will be added by background script
+    robots: {
+      content: robotsContent,
+      isNoindex: isNoindex,
+      isNofollow: isNofollow,
+      allowed: !isNoindex,
+      directives: robotsContent ? robotsContent.toLowerCase().split(',').map(item => item.trim()) : []
+    },
+    canonical: {
+      url: canonicalUrl,
+      valid: canonicalValid
+    },
+    isIndexable: isIndexable,
+    isFollowable: isFollowable,
+    // Thông tin mobile friendly
+    mobileFriendly: {
+      viewport: hasMobileViewport,
+      isMobileFriendly: hasMobileViewport
+    },
+    // Thông tin bảo mật
+    security: {
+      isSecure: window.location.protocol === 'https:'
+    },
+    // Thông tin OpenGraph
+    openGraph: openGraphTags,
+    // Thông tin AMP
+    amp: {
+      hasAmp: !!ampUrl,
+      url: ampUrl
+    },
+    // Thông tin ngôn ngữ
+    language: pageLang,
+    // Thông tin server
+    serverInfo: serverInfo,
+    // Thông tin redirect
+    redirect: redirect,
+    // Thêm SEO score tạm tính
+    seoScore: calculateSEOScore()
+  };
+  
+  return data;
+}
+
+// Hàm tính SEO score dựa trên các yếu tố cơ bản
+function calculateSEOScore() {
+  let score = 100;
+  
+  // Title checks
+  const title = document.title || ''; // Default to empty string
+  if (!title) {
+    score -= 15; // Missing title
+  } else {
+    if (title.length < 30) score -= 5; // Title too short
+    if (title.length > 60) score -= 5; // Title too long
+  }
+  
+  // Meta description checks
+  const metaDesc = getMetaDescription();
+  if (!metaDesc) {
+    score -= 10; // Missing meta description
+  } else {
+    if (metaDesc.length < 120) score -= 5; // Description too short
+    if (metaDesc.length > 160) score -= 3; // Description too long
+  }
+  
+  // H1 checks
+  const h1Elements = document.querySelectorAll('h1');
+  if (h1Elements.length === 0) {
+    score -= 10; // Missing H1
+  } else if (h1Elements.length > 1) {
+    score -= 5; // Multiple H1s
+  }
+  
+  // Image alt text
+  const images = document.querySelectorAll('img');
+  const imagesWithoutAlt = Array.from(images).filter(img => !img.alt || img.alt.trim() === '');
+  if (images.length > 0 && imagesWithoutAlt.length > 0) {
+    const altTextPercentage = (imagesWithoutAlt.length / images.length) * 100;
+    if (altTextPercentage > 50) {
+      score -= 10; // More than 50% of images missing alt text
+    } else if (altTextPercentage > 20) {
+      score -= 5; // 20-50% of images missing alt text
+    }
+  }
+  
+  // Structured data check
+  // Structured data check (Safely)
+  const hasJsonLd = !!document.querySelector('script[type="application/ld+json"]'); // Use !! for boolean conversion
+  const hasMicrodata = !!document.querySelector('[itemscope]');
+  const hasRdfa = !!document.querySelector('[typeof]');
+  
+  if (!hasJsonLd && !hasMicrodata && !hasRdfa) {
+    score -= 5; // No structured data
+  }
+  
+  // Make sure score stays within 0-100 range
+  return Math.max(0, Math.min(100, score));
+}
+
+// Rest of the functions remain the same
+function extractStructuredData() {
+  const structuredData = {
+    jsonLd: [],
+    microdata: [],
+    rdfa: []
+  };
+
+  // Extract JSON-LD (Safely)
+  try {
+    const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
+    jsonLdScripts.forEach(script => {
+      try {
+        // Ensure script and textContent exist
+        const scriptContent = script?.textContent;
+        if (!scriptContent) return;
+
+        const jsonData = JSON.parse(scriptContent);
+        const type = jsonData['@type'] || 'Unknown Type';
+        
+        // Extract properties
+        const properties = [];
+        for (const key in jsonData) {
+          if (key !== '@type' && key !== '@context') {
+            properties.push(key);
+          }
+        }
+        
+        structuredData.jsonLd.push({
+          type: type,
+          properties: properties,
+          raw: scriptContent // Use the checked content
+        });
+      } catch (e) {
+        console.error('Error parsing JSON-LD:', e);
+      }
+    });
+  } catch (error) {
+    console.error("Error extracting JSON-LD:", error);
+  }
+
+  // Extract Microdata (using basic selectors) (Safely)
+  try {
+    const microdataElements = document.querySelectorAll('[itemscope]');
+    microdataElements.forEach(element => {
+      // Ensure element exists before accessing attributes
+      const type = element?.getAttribute('itemtype') || 'Unknown Type';
+      const properties = Array.from(element?.querySelectorAll('[itemprop]') || []) // Default to empty array
+                           .map(el => el?.getAttribute('itemprop') || null) // Check element and attribute
+                           .filter(prop => prop !== null); // Remove nulls if any element was missing
+      
+      structuredData.microdata.push({
+        type: type.split('/').pop(), // Extract the last part of the URL
+        properties: properties
+      });
+    });
+  } catch (error) {
+    console.error("Error extracting microdata:", error);
+  }
+
+  // Extract RDFa (Safely)
+  try {
+    const rdfaElements = document.querySelectorAll('[typeof]');
+    rdfaElements.forEach(element => {
+      // Ensure element exists before accessing attributes
+      const type = element?.getAttribute('typeof') || 'Unknown Type';
+      const properties = Array.from(element?.querySelectorAll('[property]') || []) // Default to empty array
+                           .map(el => el?.getAttribute('property') || null) // Check element and attribute
+                           .filter(prop => prop !== null); // Remove nulls if any element was missing
+      
+      structuredData.rdfa.push({
+        type: type,
+        properties: properties
+      });
+    });
+  } catch (error) {
+    console.error("Error extracting RDFa:", error);
+  }
+
+  return structuredData;
+}
+
+function getMetaDescription() {
+  // Use optional chaining ?. and nullish coalescing ??
+  return document.querySelector('meta[name="description"]')?.getAttribute('content') ?? '';
+}
+
+function getHeadings() {
+  // Safely map over potentially empty NodeLists, trim text content
+  const headings = {
+    h1: Array.from(document.querySelectorAll('h1')).map(h => h?.textContent?.trim() || ''),
+    h2: Array.from(document.querySelectorAll('h2')).map(h => h?.textContent?.trim() || ''),
+    h3: Array.from(document.querySelectorAll('h3')).map(h => h?.textContent?.trim() || ''),
+    h4: Array.from(document.querySelectorAll('h4, h5, h6')).map(h => h?.textContent?.trim() || '')
+  };
+  
+  return headings;
+}
+
+function getLinks() {
+  const allLinks = Array.from(document.querySelectorAll('a'));
+  const currentHost = window.location.hostname;
+  let internal = 0;
+  let external = 0;
+  let nofollow = 0;
+
+  allLinks.forEach(link => {
+    if (!link) return; // Skip if link element is somehow null
+    try {
+      // Check hostname safely
+      const linkHostname = link.hostname;
+      if (linkHostname === currentHost || !linkHostname) {
+        internal++;
+      } else {
+        external++;
+      }
+      // Check rel attribute safely
+      if (link.rel?.includes('nofollow')) {
+        nofollow++;
+      }
+    } catch (e) {
+      // Ignore errors from invalid link.href values etc.
+      console.error("Error processing link:", link.outerHTML, e);
+    }
+  });
+
+  return { internal, external, nofollow, total: allLinks.length };
+}
+
+function getImages() {
+  const allImages = Array.from(document.querySelectorAll('img'));
+  let withAlt = 0;
+  let withoutAlt = 0;
+
+  allImages.forEach(img => {
+    if (!img) return; // Skip if img element is somehow null
+    // Check alt attribute safely
+    if (img.alt?.trim()) {
+      withAlt++;
+    } else {
+      withoutAlt++;
+    }
+  });
+
+  return { total: allImages.length, withAlt, withoutAlt };
+}

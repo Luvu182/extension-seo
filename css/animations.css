@@ -1,0 +1,35 @@
+/* Animations for SEO AI Assistant */
+@keyframes spin { 
+  to { 
+    transform: rotate(360deg); 
+  } 
+}
+
+@keyframes fadeIn { 
+  from { 
+    opacity: 0; 
+  } 
+  to { 
+    opacity: 1; 
+  } 
+}
+
+@keyframes fadeOut { 
+  from { 
+    opacity: 1; 
+  } 
+  to { 
+    opacity: 0; 
+  } 
+}
+
+@keyframes slideIn { 
+  from { 
+    transform: translateX(20px); 
+    opacity: 0; 
+  } 
+  to { 
+    transform: translateX(0); 
+    opacity: 1; 
+  } 
+}

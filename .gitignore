@@ -1,0 +1,14 @@
+# Backup directories
+extension-main-backup*/
+extension-main-v*/
+
+# Node modules
+node_modules/
+
+# Build directories
+build/
+dist/
+
+# OS generated files
+.DS_Store
+Thumbs.db

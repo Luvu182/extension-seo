@@ -1,0 +1,52 @@
+Date : 2025-04-12 23:36:32
+Directory : c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main
+Total : 14 files,  287 codes, 34 comments, 82 blanks, all 403 lines
+
+Languages
++------------+------------+------------+------------+------------+------------+
+| language   | files      | code       | comment    | blank      | total      |
++------------+------------+------------+------------+------------+------------+
+| JavaScript |         12 |        174 |         34 |         42 |        250 |
+| Markdown   |          2 |        113 |          0 |         40 |        153 |
++------------+------------+------------+------------+------------+------------+
+
+Directories
++--------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                                                           | files      | code       | comment    | blank      | total      |
++--------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                                              |         14 |        287 |         34 |         82 |        403 |
+| . (Files)                                                                                                                      |          3 |        113 |        -11 |         40 |        142 |
+| js                                                                                                                             |          4 |         39 |         -7 |         15 |         47 |
+| js\modules                                                                                                                     |          4 |         39 |         -7 |         15 |         47 |
+| js\modules (Files)                                                                                                             |          1 |         20 |         -3 |          8 |         25 |
+| js\modules\components                                                                                                          |          2 |         27 |          7 |          8 |         42 |
+| js\modules\services                                                                                                            |          1 |         -8 |        -11 |         -1 |        -20 |
+| src                                                                                                                            |          7 |        135 |         52 |         27 |        214 |
+| src\background                                                                                                                 |          5 |        123 |         46 |         25 |        194 |
+| src\background\controllers                                                                                                     |          4 |        115 |         46 |         25 |        186 |
+| src\background\services                                                                                                        |          1 |          8 |          0 |          0 |          8 |
+| src\content                                                                                                                    |          2 |         12 |          6 |          2 |         20 |
+| src\content (Files)                                                                                                            |          1 |         12 |          3 |          2 |         17 |
+| src\content\detectors                                                                                                          |          1 |          0 |          3 |          0 |          3 |
++--------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++--------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| filename                                                                                                                       | language   | code       | comment    | blank      | total      |
++--------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\CHANGELOG.md                                         | Markdown   |          7 |          0 |          2 |          9 |
+| c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\URL-CHANGE-BUG-FIX.md                                | Markdown   |        106 |          0 |         38 |        144 |
+| c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\js\modules\components\App.js                         | JavaScript |          8 |          3 |          4 |         15 |
+| c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\js\modules\components\ResponseDetails.js             | JavaScript |         19 |          4 |          4 |         27 |
+| c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\js\modules\services\data-fetching-service.js         | JavaScript |         -8 |        -11 |         -1 |        -20 |
+| c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\js\modules\store.js                                  | JavaScript |         20 |         -3 |          8 |         25 |
+| c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\src\background\controllers\message-controller.js     | JavaScript |         43 |         15 |         10 |         68 |
+| c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\src\background\controllers\navigation-controller.js  | JavaScript |         21 |         12 |          4 |         37 |
+| c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\src\background\controllers\seo-data-controller.js    | JavaScript |         23 |          9 |          5 |         37 |
+| c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\src\background\controllers\web-request-controller.js | JavaScript |         28 |         10 |          6 |         44 |
+| c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\src\background\services\storage-service.js           | JavaScript |          8 |          0 |          0 |          8 |
+| c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\src\content\content-controller.js                    | JavaScript |         12 |          3 |          2 |         17 |
+| c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\src\content\detectors\spa-detector.js                | JavaScript |          0 |          3 |          0 |          3 |
+| c:\Users\thanh\Desktop\react-test-project\extension-claude\extension-main\webpack.config.cjs                                   | JavaScript |          0 |        -11 |          0 |        -11 |
+| Total                                                                                                                          |            |        287 |         34 |         82 |        403 |
++--------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+

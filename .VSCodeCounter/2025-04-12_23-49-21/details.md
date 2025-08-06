@@ -1,0 +1,134 @@
+# Details
+
+Date : 2025-04-12 23:49:21
+
+Directory c:\\Users\\thanh\\Desktop\\react-test-project\\extension-claude\\extension-main
+
+Total : 119 files,  19365 codes, 3011 comments, 2516 blanks, all 24892 lines
+
+[Summary](results.md) / Details / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
+
+## Files
+| filename | language | code | comment | blank | total |
+| :--- | :--- | ---: | ---: | ---: | ---: |
+| [BUILD-SETUP.md](/BUILD-SETUP.md) | Markdown | 154 | 0 | 40 | 194 |
+| [CHANGELOG.md](/CHANGELOG.md) | Markdown | 110 | 0 | 25 | 135 |
+| [COMPONENT-STRUCTURE.md](/COMPONENT-STRUCTURE.md) | Markdown | 247 | 0 | 29 | 276 |
+| [CONNECTION-ERROR-COMPREHENSIVE-FIX-UPDATE.md](/CONNECTION-ERROR-COMPREHENSIVE-FIX-UPDATE.md) | Markdown | 168 | 0 | 39 | 207 |
+| [CONNECTION-ERROR-COMPREHENSIVE-FIX.md](/CONNECTION-ERROR-COMPREHENSIVE-FIX.md) | Markdown | 194 | 0 | 41 | 235 |
+| [CONNECTION-ERROR-FIX.md](/CONNECTION-ERROR-FIX.md) | Markdown | 126 | 0 | 17 | 143 |
+| [CORE-WEB-VITALS-FIX.md](/CORE-WEB-VITALS-FIX.md) | Markdown | 134 | 0 | 35 | 169 |
+| [POPUP-REFACTORING.md](/POPUP-REFACTORING.md) | Markdown | 93 | 0 | 29 | 122 |
+| [README.md](/README.md) | Markdown | 237 | 0 | 44 | 281 |
+| [REFACTORING-GUIDE.md](/REFACTORING-GUIDE.md) | Markdown | 412 | 0 | 103 | 515 |
+| [SPA-DETECTION-FIX.md](/SPA-DETECTION-FIX.md) | Markdown | 103 | 0 | 21 | 124 |
+| [URL-CHANGE-BUG-FIX.md](/URL-CHANGE-BUG-FIX.md) | Markdown | 106 | 0 | 38 | 144 |
+| [WEB-VITALS-FIX.md](/WEB-VITALS-FIX.md) | Markdown | 46 | 0 | 11 | 57 |
+| [css/animations.css](/css/animations.css) | CSS | 31 | 1 | 4 | 36 |
+| [css/styles.css](/css/styles.css) | CSS | 20 | 2 | 2 | 24 |
+| [js/lib/direct-web-vitals.js](/js/lib/direct-web-vitals.js) | JavaScript | 285 | 51 | 57 | 393 |
+| [js/lib/react-dom.production.min.js](/js/lib/react-dom.production.min.js) | JavaScript | 256 | 11 | 1 | 268 |
+| [js/lib/react.production.min.js](/js/lib/react.production.min.js) | JavaScript | 22 | 9 | 1 | 32 |
+| [js/lib/web-vitals-handler.js](/js/lib/web-vitals-handler.js) | JavaScript | 188 | 50 | 31 | 269 |
+| [js/lib/web-vitals.iife.js](/js/lib/web-vitals.iife.js) | JavaScript | 1 | 0 | 1 | 2 |
+| [js/modules/components/App.js](/js/modules/components/App.js) | JavaScript | 190 | 62 | 43 | 295 |
+| [js/modules/components/ContentOverview.js](/js/modules/components/ContentOverview.js) | JavaScript | 29 | 9 | 5 | 43 |
+| [js/modules/components/ContentRecommendations.js](/js/modules/components/ContentRecommendations.js) | JavaScript | 77 | 14 | 11 | 102 |
+| [js/modules/components/CoreWebVitals.js](/js/modules/components/CoreWebVitals.js) | JavaScript | 138 | 61 | 34 | 233 |
+| [js/modules/components/CoreWebVitalsDetail.js](/js/modules/components/CoreWebVitalsDetail.js) | JavaScript | 83 | 26 | 19 | 128 |
+| [js/modules/components/Footer.js](/js/modules/components/Footer.js) | JavaScript | 11 | 7 | 2 | 20 |
+| [js/modules/components/Header.js](/js/modules/components/Header.js) | JavaScript | 64 | 18 | 5 | 87 |
+| [js/modules/components/HeadingStructure.js](/js/modules/components/HeadingStructure.js) | JavaScript | 234 | 35 | 25 | 294 |
+| [js/modules/components/ImageAnalysis.js](/js/modules/components/ImageAnalysis.js) | JavaScript | 192 | 13 | 6 | 211 |
+| [js/modules/components/IssuesSummary.js](/js/modules/components/IssuesSummary.js) | JavaScript | 22 | 9 | 5 | 36 |
+| [js/modules/components/MetricItem.js](/js/modules/components/MetricItem.js) | JavaScript | 14 | 11 | 3 | 28 |
+| [js/modules/components/NavTabs.js](/js/modules/components/NavTabs.js) | JavaScript | 37 | 14 | 4 | 55 |
+| [js/modules/components/OpenGraphTags.js](/js/modules/components/OpenGraphTags.js) | JavaScript | 30 | 9 | 6 | 45 |
+| [js/modules/components/PerformanceRecommendations.js](/js/modules/components/PerformanceRecommendations.js) | JavaScript | 35 | 7 | 3 | 45 |
+| [js/modules/components/PerformanceScoreCard.js](/js/modules/components/PerformanceScoreCard.js) | JavaScript | 17 | 10 | 3 | 30 |
+| [js/modules/components/ResponseDetails.js](/js/modules/components/ResponseDetails.js) | JavaScript | 202 | 53 | 35 | 290 |
+| [js/modules/components/SeoScoreCard.js](/js/modules/components/SeoScoreCard.js) | JavaScript | 72 | 14 | 6 | 92 |
+| [js/modules/components/SerpPreview.js](/js/modules/components/SerpPreview.js) | JavaScript | 68 | 34 | 12 | 114 |
+| [js/modules/components/ServerDetails.js](/js/modules/components/ServerDetails.js) | JavaScript | 44 | 19 | 7 | 70 |
+| [js/modules/components/ServerResponseTime.js](/js/modules/components/ServerResponseTime.js) | JavaScript | 25 | 7 | 4 | 36 |
+| [js/modules/components/TextAnalysis.js](/js/modules/components/TextAnalysis.js) | JavaScript | 73 | 12 | 10 | 95 |
+| [js/modules/components/WebsiteInformation.js](/js/modules/components/WebsiteInformation.js) | JavaScript | 45 | 9 | 6 | 60 |
+| [js/modules/components/common/RecommendationItem.js](/js/modules/components/common/RecommendationItem.js) | JavaScript | 45 | 10 | 4 | 59 |
+| [js/modules/components/common/StatItem.js](/js/modules/components/common/StatItem.js) | JavaScript | 24 | 9 | 2 | 35 |
+| [js/modules/components/content/ContentTabHeader.js](/js/modules/components/content/ContentTabHeader.js) | JavaScript | 36 | 11 | 3 | 50 |
+| [js/modules/components/content/ImageContentTab.js](/js/modules/components/content/ImageContentTab.js) | JavaScript | 122 | 21 | 14 | 157 |
+| [js/modules/components/content/ImageIssueCard.js](/js/modules/components/content/ImageIssueCard.js) | JavaScript | 77 | 12 | 7 | 96 |
+| [js/modules/components/content/ImageTable.js](/js/modules/components/content/ImageTable.js) | JavaScript | 197 | 15 | 6 | 218 |
+| [js/modules/components/content/TextContentTab.js](/js/modules/components/content/TextContentTab.js) | JavaScript | 74 | 15 | 12 | 101 |
+| [js/modules/components/links/LinkAnalysisTable.js](/js/modules/components/links/LinkAnalysisTable.js) | JavaScript | 171 | 27 | 11 | 209 |
+| [js/modules/components/links/LinkCountCards.js](/js/modules/components/links/LinkCountCards.js) | JavaScript | 37 | 9 | 5 | 51 |
+| [js/modules/components/links/LinkDistribution.js](/js/modules/components/links/LinkDistribution.js) | JavaScript | 76 | 13 | 7 | 96 |
+| [js/modules/components/links/LinkExportButton.js](/js/modules/components/links/LinkExportButton.js) | JavaScript | 103 | 12 | 7 | 122 |
+| [js/modules/components/links/LinkIssuesTable.js](/js/modules/components/links/LinkIssuesTable.js) | JavaScript | 92 | 14 | 13 | 119 |
+| [js/modules/components/links/LinkStatusChecker.js](/js/modules/components/links/LinkStatusChecker.js) | JavaScript | 85 | 15 | 7 | 107 |
+| [js/modules/components/links/LinkStatusFilter.js](/js/modules/components/links/LinkStatusFilter.js) | JavaScript | 261 | 42 | 32 | 335 |
+| [js/modules/components/links/LinkTable.js](/js/modules/components/links/LinkTable.js) | JavaScript | 607 | 79 | 60 | 746 |
+| [js/modules/components/status/LoadingDisplay.js](/js/modules/components/status/LoadingDisplay.js) | JavaScript | 36 | 12 | 4 | 52 |
+| [js/modules/components/status/NetworkErrorDisplay.js](/js/modules/components/status/NetworkErrorDisplay.js) | JavaScript | 35 | 14 | 5 | 54 |
+| [js/modules/components/status/RefreshButton.js](/js/modules/components/status/RefreshButton.js) | JavaScript | 27 | 14 | 3 | 44 |
+| [js/modules/components/status/SpaNavigationDisplay.js](/js/modules/components/status/SpaNavigationDisplay.js) | JavaScript | 88 | 24 | 10 | 122 |
+| [js/modules/data-service.js](/js/modules/data-service.js) | JavaScript | 273 | 39 | 45 | 357 |
+| [js/modules/services/data-fetching-service.js](/js/modules/services/data-fetching-service.js) | JavaScript | 238 | 51 | 35 | 324 |
+| [js/modules/services/link-service.js](/js/modules/services/link-service.js) | JavaScript | 604 | 144 | 110 | 858 |
+| [js/modules/services/navigation-service.js](/js/modules/services/navigation-service.js) | JavaScript | 96 | 48 | 28 | 172 |
+| [js/modules/services/performance-service.js](/js/modules/services/performance-service.js) | JavaScript | 150 | 45 | 28 | 223 |
+| [js/modules/services/server-service.js](/js/modules/services/server-service.js) | JavaScript | 113 | 42 | 35 | 190 |
+| [js/modules/store.js](/js/modules/store.js) | JavaScript | 224 | 56 | 52 | 332 |
+| [js/modules/styles.js](/js/modules/styles.js) | JavaScript | 330 | 8 | 4 | 342 |
+| [js/modules/tabs/ai-tab.js](/js/modules/tabs/ai-tab.js) | JavaScript | 112 | 15 | 12 | 139 |
+| [js/modules/tabs/content-tab.js](/js/modules/tabs/content-tab.js) | JavaScript | 131 | 44 | 27 | 202 |
+| [js/modules/tabs/index.js](/js/modules/tabs/index.js) | JavaScript | 10 | 7 | 4 | 21 |
+| [js/modules/tabs/issues-tab.js](/js/modules/tabs/issues-tab.js) | JavaScript | 93 | 16 | 10 | 119 |
+| [js/modules/tabs/links-tab.js](/js/modules/tabs/links-tab.js) | JavaScript | 319 | 64 | 60 | 443 |
+| [js/modules/tabs/overview-tab.js](/js/modules/tabs/overview-tab.js) | JavaScript | 69 | 17 | 17 | 103 |
+| [js/modules/tabs/performance-tab.js](/js/modules/tabs/performance-tab.js) | JavaScript | 25 | 19 | 11 | 55 |
+| [js/modules/tabs/settings-tab.js](/js/modules/tabs/settings-tab.js) | JavaScript | 92 | 19 | 11 | 122 |
+| [js/modules/tabs/structured-tab.js](/js/modules/tabs/structured-tab.js) | JavaScript | 98 | 15 | 14 | 127 |
+| [js/modules/ui-helpers.js](/js/modules/ui-helpers.js) | JavaScript | 103 | 11 | 19 | 133 |
+| [js/modules/utils.js](/js/modules/utils.js) | JavaScript | 32 | 8 | 8 | 48 |
+| [js/popup.js](/js/popup.js) | JavaScript | 22 | 11 | 5 | 38 |
+| [manifest.json](/manifest.json) | JSON | 51 | 0 | 1 | 52 |
+| [package-lock.json](/package-lock.json) | JSON | 4,712 | 0 | 1 | 4,713 |
+| [package.json](/package.json) | JSON | 25 | 0 | 1 | 26 |
+| [planning.md](/planning.md) | Markdown | 134 | 0 | 32 | 166 |
+| [popup.html](/popup.html) | HTML | 15 | 2 | 2 | 19 |
+| [rebuild.bat](/rebuild.bat) | Batch | 23 | 0 | 5 | 28 |
+| [src/background/background.js](/src/background/background.js) | JavaScript | 39 | 17 | 14 | 70 |
+| [src/background/controllers/link-checker-controller.js](/src/background/controllers/link-checker-controller.js) | JavaScript | 131 | 38 | 26 | 195 |
+| [src/background/controllers/message-controller.js](/src/background/controllers/message-controller.js) | JavaScript | 257 | 80 | 55 | 392 |
+| [src/background/controllers/navigation-controller.js](/src/background/controllers/navigation-controller.js) | JavaScript | 68 | 52 | 26 | 146 |
+| [src/background/controllers/seo-data-controller.js](/src/background/controllers/seo-data-controller.js) | JavaScript | 189 | 72 | 39 | 300 |
+| [src/background/controllers/server-info-controller.js](/src/background/controllers/server-info-controller.js) | JavaScript | 51 | 17 | 12 | 80 |
+| [src/background/controllers/spa-navigation-controller.js](/src/background/controllers/spa-navigation-controller.js) | JavaScript | 143 | 59 | 39 | 241 |
+| [src/background/controllers/tab-controller.js](/src/background/controllers/tab-controller.js) | JavaScript | 25 | 16 | 7 | 48 |
+| [src/background/controllers/web-request-controller.js](/src/background/controllers/web-request-controller.js) | JavaScript | 319 | 119 | 87 | 525 |
+| [src/background/controllers/web-vitals-controller.js](/src/background/controllers/web-vitals-controller.js) | JavaScript | 158 | 55 | 25 | 238 |
+| [src/background/services/cleanup-service.js](/src/background/services/cleanup-service.js) | JavaScript | 47 | 19 | 17 | 83 |
+| [src/background/services/link-checker-service.js](/src/background/services/link-checker-service.js) | JavaScript | 250 | 67 | 43 | 360 |
+| [src/background/services/messaging-service.js](/src/background/services/messaging-service.js) | JavaScript | 103 | 41 | 18 | 162 |
+| [src/background/services/server-info-service.js](/src/background/services/server-info-service.js) | JavaScript | 69 | 19 | 14 | 102 |
+| [src/background/services/storage-service.js](/src/background/services/storage-service.js) | JavaScript | 115 | 73 | 26 | 214 |
+| [src/background/services/vercel-link-service.js](/src/background/services/vercel-link-service.js) | JavaScript | 126 | 43 | 31 | 200 |
+| [src/background/services/web-vitals-service.js](/src/background/services/web-vitals-service.js) | JavaScript | 144 | 61 | 37 | 242 |
+| [src/content/analyzers/web-vitals-analyzer.js](/src/content/analyzers/web-vitals-analyzer.js) | JavaScript | 212 | 53 | 30 | 295 |
+| [src/content/content-controller.js](/src/content/content-controller.js) | JavaScript | 158 | 61 | 48 | 267 |
+| [src/content/content.js](/src/content/content.js) | JavaScript | 18 | 7 | 7 | 32 |
+| [src/content/detectors/spa-detector.js](/src/content/detectors/spa-detector.js) | JavaScript | 269 | 104 | 65 | 438 |
+| [src/content/extractors/seo-extractor.js](/src/content/extractors/seo-extractor.js) | JavaScript | 302 | 63 | 38 | 403 |
+| [src/content/utils/dom-utils.js](/src/content/utils/dom-utils.js) | JavaScript | 422 | 102 | 77 | 601 |
+| [src/content/utils/link-checker.js](/src/content/utils/link-checker.js) | JavaScript | 138 | 21 | 22 | 181 |
+| [src/shared/constants.js](/src/shared/constants.js) | JavaScript | 70 | 1 | 10 | 81 |
+| [src/shared/constants/dom-constants.js](/src/shared/constants/dom-constants.js) | JavaScript | 6 | 7 | 6 | 19 |
+| [src/shared/utils/logger.js](/src/shared/utils/logger.js) | JavaScript | 37 | 29 | 5 | 71 |
+| [src/shared/utils/messaging.js](/src/shared/utils/messaging.js) | JavaScript | 235 | 64 | 29 | 328 |
+| [src/shared/utils/string-utils.js](/src/shared/utils/string-utils.js) | JavaScript | 28 | 17 | 10 | 55 |
+| [update-content.md](/update-content.md) | Markdown | 196 | 0 | 37 | 233 |
+| [webpack.config.cjs](/webpack.config.cjs) | JavaScript | 61 | 4 | 2 | 67 |
+| [webpack.config.js](/webpack.config.js) | JavaScript | 57 | 4 | 2 | 63 |
+
+[Summary](results.md) / Details / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
