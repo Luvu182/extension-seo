@@ -376,6 +376,11 @@ class MessageControllerClass {
       const timestamp = message.timestamp || Date.now();
 
       logger.info('MessageController', `Received content update from ${source} for tab ${tabId}, url ${tabUrl}`);
+      
+      // Log if this is SPA navigation
+      if (message.data.isSpaNavigation) {
+        logger.info('MessageController', `This is a SPA navigation update from ${source}`);
+      }
 
       // Add response status code from WebRequestController if available
       const statusInfo = WebRequestController.getResponseStatus(tabId, tabUrl);
@@ -495,6 +500,19 @@ class MessageControllerClass {
       StorageService.setTabData(tabId, tabUrl, updatedData)
         .then(() => {
           logger.info('MessageController', `Updated data for tab ${tabId}, url ${tabUrl}`);
+          
+          // Always notify popup of data update
+          logger.info('MessageController', 'Notifying popup of data update');
+          chrome.runtime.sendMessage({
+            action: message.data.isSpaNavigation ? 'spaDataUpdated' : 'dataUpdated',
+            tabId: tabId,
+            url: tabUrl,
+            timestamp: timestamp
+          }).catch(err => {
+            // Ignore error if popup not listening
+            logger.debug('MessageController', 'No popup listening for data update');
+          });
+          
           if (sendResponse) {
             sendResponse({ success: true });
           }

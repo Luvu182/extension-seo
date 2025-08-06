@@ -19,16 +19,17 @@ export const navigationService = {
     // Get current tab for comparison
     const currentTab = store.getStateSlice('activeTab');
     
-    // Don't do anything if we're already on this tab
-    if (tabId === currentTab) {
-      console.log(`[navigationService] Already on tab: ${tabId}`);
-      return;
-    }
+    // Remove the check that prevents switching to same tab
+    // This fixes the issue where clicking overview doesn't work
     
-    // Update the store with the new tab
+    // Always update the store with the new tab
     store.setStateSlice('activeTab', tabId);
     
-    // Could add animation logic here if needed in the future
+    // Force a re-render by dispatching a custom event
+    const event = new CustomEvent('tabSwitched', { detail: { tabId } });
+    document.dispatchEvent(event);
+    
+    console.log(`[navigationService] Tab switched to: ${tabId}`);
   },
   
   /**
@@ -109,13 +110,8 @@ export const navigationService = {
    * @returns {string} The last active tab ID or 'overview' as default
    */
   getLastActiveTab() {
-    try {
-      const lastTab = localStorage.getItem('seoAiAssistantLastTab');
-      return lastTab || 'overview';
-    } catch (e) {
-      console.warn('[navigationService] Could not retrieve last active tab from localStorage:', e);
-      return 'overview';
-    }
+    // Always return overview - don't remember last tab
+    return 'overview';
   },
   
   /**

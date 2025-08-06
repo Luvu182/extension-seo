@@ -69,35 +69,8 @@ class NavigationControllerClass {
       // Always update last known URL
       StorageService.setLastKnownUrl(tabId, newUrl);
 
-      // --- START FIX: Clear SPA flags on page load/reload ---
-      try {
-        const currentData = StorageService.getTabData(tabId, newUrl);
-        if (currentData) {
-          // Check if any SPA flags exist before attempting to clean
-          const needsCleaning = currentData.isSpaDetected || currentData.isSpaNavigation || currentData.urlChanged || currentData.needsRefresh || currentData.navigationSource || currentData.freshSpaNavigation;
-          
-          if (needsCleaning) {
-            logger.info('NavigationController', `Cleaning SPA flags for tab ${tabId}, URL ${newUrl} due to page load/reload.`);
-            const cleanedData = { ...currentData };
-            delete cleanedData.isSpaDetected;
-            delete cleanedData.isSpaNavigation;
-            delete cleanedData.urlChanged;
-            delete cleanedData.needsRefresh;
-            delete cleanedData.navigationSource;
-            delete cleanedData.freshSpaNavigation;
-            // Also ensure loading is false, although handleContentUpdate should do this too
-            cleanedData.isLoading = false; 
-            cleanedData.waitingForExtraction = false;
-            
-            StorageService.setTabData(tabId, newUrl, cleanedData);
-          } else {
-            // logger.info('NavigationController', `No SPA flags to clean for tab ${tabId}, URL ${newUrl}.`);
-          }
-        }
-      } catch (error) {
-        logger.error('NavigationController', `Error cleaning SPA flags for tab ${tabId}, URL ${newUrl}`, error);
-      }
-      // --- END FIX ---
+      // --- Don't clear data immediately, let the UI handle it ---
+      // The data will be refreshed when popup requests it
     }
   }
 

@@ -41,8 +41,10 @@ export const storageUtils = {
       }
       chrome.storage.local.set(items, () => {
         if (chrome.runtime.lastError) {
-          logger.error('storageUtils', `Error setting items: ${Object.keys(items).join(', ')}`, chrome.runtime.lastError);
-          return reject(chrome.runtime.lastError);
+          const error = chrome.runtime.lastError;
+          const errorMessage = error.message || JSON.stringify(error);
+          logger.error('storageUtils', `Error setting items: ${Object.keys(items).join(', ')} - ${errorMessage}`);
+          return reject(new Error(errorMessage));
         }
         resolve();
       });

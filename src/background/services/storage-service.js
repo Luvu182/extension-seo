@@ -33,14 +33,14 @@ class StorageServiceClass {
    */
   getTabData(tabId, url) {
     if (!this.seoDataStore[tabId]) {
-      this.seoDataStore[tabId] = {};
+      return null;
     }
 
-    if (url && !this.seoDataStore[tabId][url]) {
-      this.seoDataStore[tabId][url] = {};
+    if (url) {
+      return this.seoDataStore[tabId][url] || null;
     }
 
-    return url ? this.seoDataStore[tabId][url] : this.seoDataStore[tabId];
+    return this.seoDataStore[tabId];
   }
 
   /**
@@ -57,6 +57,80 @@ class StorageServiceClass {
   }
 
   /**
+   * Optimize data size by removing unnecessary fields
+   * @param {Object} data - The data to optimize
+   * @returns {Object} - Optimized data
+   */
+  optimizeDataSize(data) {
+    if (!data) return data;
+    
+    // Create a shallow copy
+    const optimized = { ...data };
+    
+    // Log original size
+    const originalSize = JSON.stringify(data).length;
+    logger.info('StorageService', `Original data size: ${originalSize} bytes`);
+    
+    // Remove large fields that might not be needed for storage
+    if (optimized.links?.internal?.items?.length > 20) {
+      optimized.links.internal.items = optimized.links.internal.items.slice(0, 20);
+    }
+    if (optimized.links?.external?.items?.length > 20) {
+      optimized.links.external.items = optimized.links.external.items.slice(0, 20);
+    }
+    
+    // Remove image data completely if too large
+    if (optimized.images?.items?.length > 10) {
+      optimized.images.items = optimized.images.items.slice(0, 10).map(img => ({
+        src: img.src,
+        alt: img.alt,
+        width: img.width,
+        height: img.height
+        // Remove other fields like base64, naturalWidth, etc
+      }));
+    }
+    
+    // Remove raw HTML content and other large fields
+    delete optimized.rawHtml;
+    delete optimized.fullContent;
+    delete optimized.scripts;
+    delete optimized.stylesheets;
+    delete optimized.jsonLdRaw;
+    delete optimized.microdataRaw;
+    
+    // Remove detailed structured data if too large
+    if (optimized.structuredData) {
+      // Keep only summary
+      optimized.structuredData = {
+        hasJsonLd: !!optimized.structuredData.jsonLd?.length,
+        hasMicrodata: !!optimized.structuredData.microdata?.length,
+        jsonLdCount: optimized.structuredData.jsonLd?.length || 0,
+        microdataCount: optimized.structuredData.microdata?.length || 0
+      };
+    }
+    
+    // Log optimized size
+    const optimizedSize = JSON.stringify(optimized).length;
+    logger.info('StorageService', `Optimized data size: ${optimizedSize} bytes (reduced by ${originalSize - optimizedSize} bytes)`);
+    
+    return optimized;
+  }
+
+  /**
+   * Check storage quota
+   * @returns {Promise<Object>} - Quota info
+   */
+  async checkStorageQuota() {
+    if (navigator.storage && navigator.storage.estimate) {
+      const estimate = await navigator.storage.estimate();
+      const percentUsed = (estimate.usage / estimate.quota) * 100;
+      logger.info('StorageService', `Storage usage: ${percentUsed.toFixed(2)}% (${estimate.usage} / ${estimate.quota})`);
+      return { usage: estimate.usage, quota: estimate.quota, percentUsed };
+    }
+    return null;
+  }
+
+  /**
    * Set tab data with URL-based indexing
    * @param {number} tabId - The tab ID
    * @param {string} url - The URL
@@ -68,19 +142,73 @@ class StorageServiceClass {
       this.seoDataStore[tabId] = {};
     }
 
-    this.seoDataStore[tabId][url] = data;
+    // Optimize data size before storing
+    const optimizedData = this.optimizeDataSize(data);
+    this.seoDataStore[tabId][url] = optimizedData;
 
-    // Also save to chrome.storage with URL-specific key
+    // Check storage quota before saving
+    const quota = await this.checkStorageQuota();
+    if (quota && quota.percentUsed > 80) {
+      logger.warn('StorageService', `Storage usage high: ${quota.percentUsed.toFixed(2)}%`);
+      // Clear old data first
+      await this.clearOldTabData();
+    }
+
+    // Check if data is too large even after optimization
+    const dataSize = JSON.stringify(optimizedData).length;
+    const MAX_SINGLE_ITEM_SIZE = 8192; // Chrome's limit per item is ~8KB
+    
+    if (dataSize > MAX_SINGLE_ITEM_SIZE) {
+      logger.warn('StorageService', `Data still too large (${dataSize} bytes) after optimization, keeping in memory only`);
+      // Don't try to save to chrome.storage if too large
+      return optimizedData;
+    }
+
+    // Save to chrome.storage with URL-specific key
     const storageKey = `${STORAGE_KEYS.TAB_PREFIX}${tabId}_${encodeURIComponent(url)}`;
-    const storageData = { [storageKey]: data }; // Use computed property name
+    const storageData = { [storageKey]: optimizedData };
 
     try {
-      await storageUtils.set(storageData); // Use shared utility
+      await storageUtils.set(storageData);
       logger.info('StorageService', `Successfully saved data for tab ${tabId}, url ${url}`);
-      return data; // Return the original data on success
+      return optimizedData;
     } catch (error) {
       logger.error('StorageService', `Error saving data for tab ${tabId}, url ${url}`, error);
-      throw error; // Re-throw the error for the caller to handle
+      
+      // If quota exceeded, just keep in memory and warn
+      if (error.message && error.message.includes('quota exceeded')) {
+        logger.warn('StorageService', 'Storage quota exceeded, keeping data in memory only');
+        // Still return the data so popup can display it from memory
+        return optimizedData;
+      }
+      
+      // For other errors, still return data
+      return optimizedData;
+    }
+  }
+
+  /**
+   * Clear old tab data to free up space
+   */
+  async clearOldTabData() {
+    const cutoffTime = Date.now() - (30 * 60 * 1000); // 30 minutes
+    const keysToRemove = [];
+    
+    // Get all keys from storage
+    const allData = await chrome.storage.local.get(null);
+    
+    for (const key in allData) {
+      if (key.startsWith(STORAGE_KEYS.TAB_PREFIX)) {
+        const data = allData[key];
+        if (data.timestamp && data.timestamp < cutoffTime) {
+          keysToRemove.push(key);
+        }
+      }
+    }
+    
+    if (keysToRemove.length > 0) {
+      await chrome.storage.local.remove(keysToRemove);
+      logger.info('StorageService', `Cleared ${keysToRemove.length} old entries`);
     }
   }
 

@@ -8,6 +8,71 @@ import { DomUtils } from '../utils/dom-utils.js';
  */
 export class SeoExtractor {
   /**
+   * Wait for page to be ready before extracting data
+   * @returns {Promise<void>}
+   */
+  static async waitForPageReady() {
+    logger.info('SeoExtractor', 'Waiting for page to be ready...');
+    
+    const maxWaitTime = 5000; // 5 seconds max
+    const checkInterval = 100; // Check every 100ms
+    const startTime = Date.now();
+    
+    // Helper to check if page has meaningful content
+    const hasContent = () => {
+      // Check for title
+      const title = document.title;
+      if (!title || title === 'Loading...' || title === '' || title === 'Document') {
+        return false;
+      }
+      
+      // Check for body content
+      const bodyText = document.body?.textContent?.trim() || '';
+      if (bodyText.length < 100) {
+        return false;
+      }
+      
+      // Check for main content elements
+      const hasMainContent = !!(
+        document.querySelector('main') ||
+        document.querySelector('article') ||
+        document.querySelector('[role="main"]') ||
+        document.querySelector('#content') ||
+        document.querySelector('.content')
+      );
+      
+      // Check for headings
+      const hasHeadings = document.querySelectorAll('h1, h2, h3').length > 0;
+      
+      return hasMainContent || hasHeadings;
+    };
+    
+    // Wait for DOM to be ready and content to load
+    while (Date.now() - startTime < maxWaitTime) {
+      // Check if document is ready
+      if (document.readyState === 'complete') {
+        // Check if page has meaningful content
+        if (hasContent()) {
+          logger.info('SeoExtractor', 'Page appears ready with content');
+          // Wait a bit more for any async content
+          await new Promise(resolve => setTimeout(resolve, 200));
+          return;
+        }
+      }
+      
+      // Wait before next check
+      await new Promise(resolve => setTimeout(resolve, checkInterval));
+    }
+    
+    // If we've waited max time, check one more time
+    if (hasContent()) {
+      logger.info('SeoExtractor', 'Page ready after max wait time');
+    } else {
+      logger.warn('SeoExtractor', 'Page may not be fully loaded after 5s wait');
+    }
+  }
+  
+  /**
    * Extract SEO data from the current page.
    * This function gathers various SEO-related information from the DOM.
    * @returns {Promise<Object>} The extracted SEO data object.
@@ -16,9 +81,31 @@ export class SeoExtractor {
     logger.info('SeoExtractor', 'Extracting SEO data...');
 
     try {
+      // Wait for page to be ready before extracting
+      await this.waitForPageReady();
+      
       // --- Basic Page Info ---
       const url = window.location.href;
-      const title = document.title || '';
+      
+      // Get title with better fallback logic
+      let title = document.title || '';
+      
+      // If still no title or generic loading title, try alternatives
+      if (!title || title === 'Loading...' || title === '' || title === 'Document') {
+        const ogTitle = document.querySelector('meta[property="og:title"]')?.content;
+        const twitterTitle = document.querySelector('meta[name="twitter:title"]')?.content;
+        const h1 = document.querySelector('h1')?.textContent?.trim();
+        const h2 = document.querySelector('h2')?.textContent?.trim();
+        
+        title = ogTitle || twitterTitle || h1 || h2 || 'No Title found';
+        
+        if (title === 'No Title found') {
+          logger.warn('SeoExtractor', 'No title found in any location');
+        } else {
+          logger.info('SeoExtractor', `Title found using fallback: ${title}`);
+        }
+      }
+      
       const description = DomUtils.getMetaDescription(); // Use DomUtils
 
       // --- Robots Meta Tag ---

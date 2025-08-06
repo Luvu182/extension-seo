@@ -37,6 +37,30 @@ class CleanupServiceClass {
   }
 
   /**
+   * Clear all storage data when quota is exceeded
+   */
+  async clearAllStorage() {
+    try {
+      logger.warn('CleanupService', 'Clearing all storage due to quota exceeded');
+      
+      // Clear chrome.storage.local
+      await chrome.storage.local.clear();
+      
+      // Clear in-memory store
+      const seoDataStore = StorageService.seoDataStore;
+      for (const tabId in seoDataStore) {
+        delete seoDataStore[tabId];
+      }
+      
+      logger.info('CleanupService', 'All storage cleared successfully');
+      return true;
+    } catch (error) {
+      logger.error('CleanupService', 'Failed to clear storage:', error);
+      return false;
+    }
+  }
+
+  /**
    * Cleanup old data to prevent memory leaks
    */
   cleanupOldData() {

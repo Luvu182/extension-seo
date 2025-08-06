@@ -1,6 +1,7 @@
 'use strict';
 
 import React from 'react';
+import { logger } from '../../../src/shared/utils/logger.js';
 
 // Import core modules
 import { store } from '../store.js';
@@ -53,24 +54,27 @@ export const App = () => {
     settings: SettingsTab,
   };
 
-  // State for active tab, page data, and loading status (derived from store)
-  const [activeTab, setActiveTab] = React.useState(
-    store.getStateSlice('activeTab') || navigationService.getLastActiveTab() || 'overview'
-  );
+  // State for active tab - always start with overview
+  const [activeTab, setActiveTab] = React.useState('overview');
   const [pageData, setPageData] = React.useState(store.getStateSlice('pageData'));
   const [isLoading, setIsLoading] = React.useState(store.getStateSlice('isLoading') ?? !pageData); // Initialize from store or based on pageData
+  const [lastUrl, setLastUrl] = React.useState('');
 
   // Effect to subscribe to store changes and update local state
   React.useEffect(() => {
     const handleStoreUpdate = (newState) => {
-      console.log('[App Component] Store updated');
+      logger.debug('App', 'Store updated');
       const newActiveTab = newState.activeTab;
       const newPageData = newState.pageData;
       const newIsLoading = newState.isLoading;
 
       // Check for URL changes that require refresh
       if (newPageData && newPageData.urlChanged && newPageData.needsRefresh) {
-        console.log('[App Component] URL change detected, triggering auto-refresh');
+        logger.info('App', 'URL change detected, resetting to overview tab and triggering auto-refresh');
+        
+        // Reset to overview tab when URL changes
+        setActiveTab('overview');
+        store.setStateSlice('activeTab', 'overview');
         
         // Skip other state updates and go straight to refresh
         setIsLoading(true); 
@@ -82,19 +86,26 @@ export const App = () => {
         
         return; // Skip other state updates
       }
+      
+      // Also check for loading state from backend
+      if (newPageData && (newPageData.waitingForExtraction || newPageData.isLoading || newPageData.needsRefresh)) {
+        logger.info('App', 'Data loading/extraction in progress, showing loading state');
+        setIsLoading(true);
+        // Don't return - let other state updates continue
+      }
 
       // Update local state only if the corresponding store slice has changed
       if (newActiveTab !== activeTab) {
-        console.log('[App Component] Active tab changed in store:', newActiveTab);
+        logger.debug('App', `Active tab changed in store: ${newActiveTab}`);
         setActiveTab(newActiveTab);
       }
       if (newIsLoading !== isLoading) {
-        console.log('[App Component] isLoading changed in store:', newIsLoading);
+        logger.debug('App', `isLoading changed in store: ${newIsLoading}`);
         setIsLoading(newIsLoading);
       }
       // Use stringify for simple comparison, consider a deep-equal function for complex objects if needed
       if (JSON.stringify(newPageData) !== JSON.stringify(pageData)) {
-        console.log('[App Component] Page data changed in store');
+        logger.debug('App', 'Page data changed in store');
         setPageData(newPageData);
       }
     };
@@ -107,7 +118,7 @@ export const App = () => {
     const handleWebVitalsUpdate = (message, sender, sendResponse) => {
       // Handle ping requests from background script
       if (message.action === "ping") {
-        console.log('[App Component] Received ping from background script');
+        logger.debug('App', 'Received ping from background script');
         if (sendResponse) {
           sendResponse({ success: true, from: 'popup' });
         }
@@ -116,7 +127,7 @@ export const App = () => {
 
       // Handle web vitals updates
       if (message.action === "webVitalsUpdated" && message.webVitals) {
-        console.log('[App Component] Received Web Vitals update:', message.webVitals, 'timestamp:', message.timestamp);
+        logger.debug('App', 'Received Web Vitals update:', message.webVitals, 'timestamp:', message.timestamp);
 
         // Always update regardless of current page data state
         try {
@@ -138,11 +149,11 @@ export const App = () => {
             lastUpdated: message.timestamp || Date.now() // Track when this update happened
           };
 
-          console.log('[App Component] Updating UI with new Web Vitals');
+          logger.debug('App', 'Updating UI with new Web Vitals');
 
           // IMPORTANT: Preserve SPA detection flags if they exist
           if (currentStoreData.isSpaDetected || currentStoreData.isSpaNavigation) {
-            console.log('[App Component] Preserving SPA detection flags during web vitals update');
+            logger.debug('App', 'Preserving SPA detection flags during web vitals update');
             updatedPageData.isSpaDetected = currentStoreData.isSpaDetected;
             updatedPageData.isSpaNavigation = currentStoreData.isSpaNavigation;
           }
@@ -174,48 +185,78 @@ export const App = () => {
 
     // Custom event handler for SPA navigation "Continue to Analysis" button
     const handleSpaNavigationComplete = () => {
-      console.log('[App Component] SPA navigation complete event received');
+      logger.debug('App', 'SPA navigation complete event received');
       // Use navigation service to complete SPA navigation
       navigationService.completeSpaNavigation();
     };
+    
+    // Custom event handler for tab switch
+    const handleTabSwitched = (event) => {
+      const { tabId } = event.detail;
+      logger.debug('App', `Tab switched event received: ${tabId}`);
+      // Force local state update
+      setActiveTab(tabId);
+    };
 
-    // Add event listener for SPA navigation complete
+    // Add event listeners
     document.addEventListener('spaNavigationComplete', handleSpaNavigationComplete);
+    document.addEventListener('tabSwitched', handleTabSwitched);
 
     // Subscribe to store updates
     const unsubscribe = store.subscribe(handleStoreUpdate);
 
     // Initial data fetch if pageData is initially null or undefined
     // OR if the store indicates it's loading (e.g., after navigation invalidation)
-    if (pageData === null || pageData === undefined || store.getStateSlice('isLoading')) {
-      console.log('[App Component] Initial load or missing/loading data, ensuring loading state and fetching...');
+    // OR if data indicates it needs refresh
+    if (pageData === null || pageData === undefined || store.getStateSlice('isLoading') || pageData?.needsRefresh) {
+      logger.info('App', 'Initial load or missing/loading data, ensuring loading state and fetching...');
       // Ensure store reflects loading state before fetching
       if (!store.getStateSlice('isLoading')) {
           store.setStateSlice('isLoading', true);
       }
       setIsLoading(true); // Update local state immediately
-      dataFetchingService.loadDataFromBackgroundOrFallback(); // Fetch data
+      // Get current tab URL and load data
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]?.url) {
+          dataFetchingService.loadFromBackground(tabs[0].url);
+        }
+      });
     }
 
     // Cleanup subscription on unmount
     return () => {
-      console.log('[App Component] Unsubscribing from store');
+      logger.info('App', 'Unsubscribing from store');
       document.removeEventListener('spaNavigationComplete', handleSpaNavigationComplete);
+      document.removeEventListener('tabSwitched', handleTabSwitched);
       chrome.runtime.onMessage.removeListener(handleWebVitalsUpdate);
       unsubscribe();
     };
-  }, [activeTab]); // Re-run effect if activeTab changes
+  }, []); // Only run once on mount
+
+  // Effect to check URL and reset tab if needed
+  React.useEffect(() => {
+    if (pageData && pageData.url) {
+      // If URL is different from last known URL, reset to overview
+      if (lastUrl && lastUrl !== pageData.url) {
+        logger.info('App', `URL changed from ${lastUrl} to ${pageData.url}, resetting to overview tab`);
+        setActiveTab('overview');
+        store.setStateSlice('activeTab', 'overview');
+      }
+      setLastUrl(pageData.url);
+    }
+  }, [pageData?.url]);
 
   /**
    * Function to handle tab switching with animation
    * @param {string} tabId - ID of the tab to switch to
    */
   const switchTabWithAnimationHandler = (tabId) => {
-    if (tabId === activeTab) return;
-
     console.log(`[App Component] Switching tab to ${tabId} with animation`);
     navigationService.switchTab(tabId, true);
-    navigationService.saveLastActiveTab(tabId);
+    // Force local state update if needed
+    if (tabId !== activeTab) {
+      setActiveTab(tabId);
+    }
   };
 
   /**
@@ -225,14 +266,14 @@ export const App = () => {
   const switchTabHandler = (tabId) => {
     console.log(`[App Component] Switching tab (no animation) to ${tabId}`);
     navigationService.switchTab(tabId, false);
-    navigationService.saveLastActiveTab(tabId);
+    // Don't save tab preference - always start with overview
   };
 
   /**
    * Function to handle data refresh
    */
   const refreshDataHandler = () => {
-    console.log('[App Component] Refresh triggered');
+    logger.info('App', 'Refresh triggered');
     // Set loading state in store and locally
     store.setStateSlice('isLoading', true);
     setIsLoading(true);
@@ -254,10 +295,10 @@ export const App = () => {
       isLoading: isLoading 
     }),
     
-    // SERP Preview
+    // SERP Preview - check loading state from both component state and pageData
     React.createElement(SerpPreview, { 
       pageData: pageData, 
-      isLoading: isLoading 
+      isLoading: isLoading || (pageData && (pageData.isLoading || pageData.waitingForExtraction || pageData.needsRefresh))
     }),
     
     // Navigation Tabs
@@ -283,14 +324,13 @@ export const App = () => {
               ? React.createElement(NetworkErrorDisplay, { 
                   message: pageData.error || 'Error loading page data' 
                 })
-              : !pageData // Handle case where data is null/undefined after loading finishes
-                ? React.createElement(NetworkErrorDisplay, {
-                    message: 'Không tìm thấy dữ liệu, vui lòng làm mới trang'
-                  })
+              : !pageData || pageData?.needsRefresh // Handle case where data is null/undefined or needs refresh
+                ? React.createElement(LoadingDisplay) // Show loading instead of error
                 // Render normal tab if data is valid
                 : React.createElement(ActiveTabComponent, { 
                     pageData: pageData, 
-                    tabName: activeTab 
+                    tabName: activeTab,
+                    isLoading: isLoading || (pageData && (pageData.isLoading || pageData.waitingForExtraction || pageData.needsRefresh))
                   })
     ),
     

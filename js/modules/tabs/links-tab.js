@@ -1,6 +1,7 @@
 'use strict';
 
 import React from 'react';
+import { logger } from '../../../src/shared/utils/logger.js';
 
 // Links tab module for SEO AI Assistant
 
@@ -60,18 +61,18 @@ export const LinksTab = ({ pageData }) => {
                 // Load saved link statuses from store
                 const savedStatuses = store.getUrlData(currentUrl, 'linkStatuses', {});
                 if (savedStatuses && Object.keys(savedStatuses).length > 0) {
-                    console.log(`Loaded ${Object.keys(savedStatuses).length} saved link statuses from store`);
+                    logger.info('LinksTab', `Loaded ${Object.keys(savedStatuses).length} saved link statuses from store`);
                     setLinkStatuses(savedStatuses);
                 }
 
                 // Load saved link issues from store
                 const savedIssues = store.getUrlData(currentUrl, 'linkIssues', null);
                 if (savedIssues) {
-                    console.log('Loaded saved link issues from store');
+                    logger.info('LinksTab', 'Loaded saved link issues from store');
                     setLinkIssues(savedIssues);
                 }
             } catch (error) {
-                console.error('Error initializing links tab:', error);
+                logger.error('LinksTab', 'Error initializing links tab:', error);
             }
         };
 
@@ -228,15 +229,15 @@ export const LinksTab = ({ pageData }) => {
 
                 // Save final statuses to store
                 store.saveUrlData(currentUrl, 'linkStatuses', finalStatuses);
-                console.log(`Saved ${Object.keys(finalStatuses).length} link statuses to store`);
+                logger.info('LinksTab', `Saved ${Object.keys(finalStatuses).length} link statuses to store`);
 
                 return finalStatuses;
             });
         } catch (error) {
-            console.error('Error checking link status:', error);
+            logger.error('LinksTab', 'Error checking link status:', error);
 
             // Log error instead of using alert
-            console.error(`Error checking links: ${error.message || 'Unknown error'}`);
+            logger.error('LinksTab', `Error checking links: ${error.message || 'Unknown error'}`);
         } finally {
             // Always set checking status to false, even if there was an error
             setIsCheckingStatus(false);
@@ -275,7 +276,7 @@ export const LinksTab = ({ pageData }) => {
         linkService.exportLinkData(exportData, format);
 
         // Show notification using console instead of DOM manipulation
-        console.log(`Successfully exported ${filteredLinks.length} links as ${format.toUpperCase()}`);
+        logger.info('LinksTab', `Successfully exported ${filteredLinks.length} links as ${format.toUpperCase()}`);
         // TODO: Implement proper React notification component
     };
 
@@ -371,7 +372,10 @@ export const LinksTab = ({ pageData }) => {
                 onStatusFilterChange: setActiveStatusFilter,
                 filteredCount: getFilteredLinks().length,
                 isOptimized: isOptimized,
-                onToggleOptimized: handleToggleOptimized
+                onToggleOptimized: handleToggleOptimized,
+                isCheckingStatus: isCheckingStatus,
+                checkProgress: checkProgress,
+                onCheckStatus: checkLinkStatus
             }),
 
             // REMOVED: Direct DOM manipulation moved to React components

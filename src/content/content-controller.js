@@ -41,18 +41,26 @@ export class ContentController {
       // Add custom event listener for SPA navigation
       this.setupSpaNavigationListener();
 
-      // Initial data extraction after short delay
-      // Use requestIdleCallback for potentially better performance
-      requestIdleCallback(() => this.sendSEOData(SPA_SOURCES.INITIAL_IDLE), { timeout: 1000 });
+      // Initial data extraction - wait for page to be more stable
+      // For SPAs, we need to wait longer for initial render
+      const initialDelay = 2000; // 2 seconds for initial load
+      
+      logger.info('ContentController', `Waiting ${initialDelay}ms for initial page render...`);
+      
+      setTimeout(() => {
+        logger.info('ContentController', 'Starting initial data extraction');
+        this.sendSEOData(SPA_SOURCES.INITIAL_IDLE);
+      }, initialDelay);
 
       // Also send data when the page is fully loaded
       window.addEventListener('load', () => {
-        // Delay slightly after load to allow metrics like LCP to potentially finalize
+        // For SPAs, wait even longer after load event
         setTimeout(() => {
+           logger.info('ContentController', 'Page load event fired, extracting data');
            this.sendSEOData(SPA_SOURCES.INITIAL_LOAD);
            // Re-measure Web Vitals after load as well
            WebVitalsAnalyzer.startMeasurement();
-        }, 1000);
+        }, 1500);
       });
 
       // Store initial URL
@@ -163,8 +171,16 @@ export class ContentController {
         logger.info('ContentController', `Same URL detected, but content may have changed - extracting data`);
       }
 
-      // Send SEO data, forcing if the URL changed
-      this.sendSEOData(`spa_navigation_${source}`, forceExtraction);
+      // For NextJS and other SPAs, wait longer for the page to fully render
+      // Use a longer delay for client-side rendered content
+      const delay = 2000; // 2 seconds delay
+      logger.info('ContentController', `Waiting ${delay}ms for SPA content to render...`);
+      
+      setTimeout(() => {
+        logger.info('ContentController', `Extracting data after SPA navigation delay`);
+        // Send SEO data, forcing if the URL changed
+        this.sendSEOData(`spa_navigation_${source}`, forceExtraction);
+      }, delay);
 
     });
 

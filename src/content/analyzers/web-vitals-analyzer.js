@@ -203,11 +203,34 @@ export class WebVitalsAnalyzer {
 
 
   /**
+   * Wait for Chrome runtime to be available
+   * @returns {Promise<boolean>}
+   */
+  static waitForRuntime(maxAttempts = 10, delay = 100) {
+    return new Promise((resolve) => {
+      let attempts = 0;
+      
+      const checkRuntime = () => {
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+          resolve(true);
+        } else if (attempts >= maxAttempts) {
+          resolve(false);
+        } else {
+          attempts++;
+          setTimeout(checkRuntime, delay);
+        }
+      };
+      
+      checkRuntime();
+    });
+  }
+
+  /**
    * Send metric data to the background script using the shared messaging utility.
    * @param {string} name - Metric name (e.g., 'lcp', 'fid', 'cls', 'ttfb', 'fcp').
    * @param {number} value - Raw metric value (usually in milliseconds or unitless for CLS).
    */
-  static sendMetricToBackground(name, value) {
+  static async sendMetricToBackground(name, value) {
     if (typeof value !== 'number' || isNaN(value)) {
        logger.warn('WebVitalsAnalyzer', `Invalid value for metric ${name}: ${value}. Skipping send.`);
        return;
@@ -256,6 +279,14 @@ export class WebVitalsAnalyzer {
     };
 
     logger.info('WebVitalsAnalyzer', `Sending metric: ${metricName}=${cappedDisplayValue}${displayUnit} (raw: ${value.toFixed(2)}ms)`);
+
+    // Wait for Chrome runtime to be available before sending
+    const runtimeAvailable = await this.waitForRuntime();
+    
+    if (!runtimeAvailable) {
+      logger.debug('WebVitalsAnalyzer', 'Chrome runtime not available, skipping metric send');
+      return;
+    }
 
     messaging.sendToBackground(message, false) // Don't expect response
       .then(() => {

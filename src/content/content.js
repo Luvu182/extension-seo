@@ -6,7 +6,7 @@ import { logger } from '../shared/utils/logger.js';
 /**
  * Main entry point for content script
  */
-(function() {
+function initializeContentScript() {
   logger.info('content', 'Content script starting...');
   
   // Initialize controller
@@ -28,4 +28,14 @@ import { logger } from '../shared/utils/logger.js';
   }
   
   logger.info('content', 'Content script loaded');
-})();
+}
+
+// Export for Vite's dynamic import
+export function onExecute(context) {
+  initializeContentScript();
+}
+
+// Also run directly if not being dynamically imported
+if (typeof onExecute === 'undefined' || !import.meta.env?.MODE) {
+  initializeContentScript();
+}

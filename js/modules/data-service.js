@@ -341,15 +341,27 @@ const mockData = {
     }; // <-- Add missing closing brace here
   }
 
+// Process and validate data
+function processData(data) {
+  // If data is already processed, return as is
+  if (data && typeof data === 'object') {
+    return data;
+  }
+  
+  // Otherwise return mock data as fallback
+  return mockData;
+}
+
 // Export public API
 export const dataService = {
   mockData,
+  processData,
   enhanceDataWithAnalytics,
-    calculateContentScore,
-    calculateTechnicalScore,
-    calculateOnPageScore,
-    calculateUserExperienceScore,
-    getAISuggestions,
+  calculateContentScore,
+  calculateTechnicalScore,
+  calculateOnPageScore,
+  calculateUserExperienceScore,
+  getAISuggestions,
   calculateFactorScores
 };
 

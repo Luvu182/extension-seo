@@ -38,41 +38,11 @@ class SeoDataControllerClass {
 
       logger.info('SeoDataController', `Retrieving data for tab ${tabId}, url ${tabUrl}`);
 
-      // AGGRESSIVELY CHECK FOR URL CHANGES and refresh data
+      // Check for URL changes
       const lastKnownUrl = StorageService.getLastKnownUrl(tabId);
       if (lastKnownUrl && lastKnownUrl !== tabUrl) {
-        logger.info('SeoDataController', `URL CHANGED from ${lastKnownUrl} to ${tabUrl}. Clearing stale data.`);
-        
-        // Don't fully clear the data, but mark it as needing refresh
-        // This preserves redirect chains while ensuring data gets refreshed
-        const existingData = StorageService.getTabData(tabId, lastKnownUrl);
-        if (existingData) {
-          // Preserve redirect chain if it exists
-          const redirectChain = existingData.redirect?.chain || [];
-          
-          // Clear the old data but keep the URL change info and redirect chain
-          StorageService.clearTabData(tabId, lastKnownUrl);
-          
-          // Store information about the URL change to help the UI
-          StorageService.setTabData(tabId, tabUrl, {
-            url: tabUrl,
-            oldUrl: lastKnownUrl,
-            urlChanged: true,
-            needsRefresh: true,
-            isLoading: true,
-            waitingForExtraction: true,
-            timestamp: Date.now(),
-            // Preserve redirect chain if it exists
-            redirect: redirectChain.length > 0 ? { chain: redirectChain } : undefined
-          });
-        } else {
-          // If no existing data, just clear everything
-          StorageService.clearTabData(tabId, lastKnownUrl);
-          
-          // Reset any storage for the old URL
-          const oldStorageKey = `tab_${tabId}_${encodeURIComponent(lastKnownUrl)}`;
-          chrome.storage.local.remove(oldStorageKey);
-        }
+        logger.info('SeoDataController', `URL CHANGED from ${lastKnownUrl} to ${tabUrl}.`);
+        // Don't clear data here - just note the change
       }
       
       // ALWAYS update the last known URL to current URL for accurate data retrieval
@@ -83,45 +53,47 @@ class SeoDataControllerClass {
       let tabData = StorageService.getTabData(tabId, tabUrl);
 
       // If no data for current URL, trigger a refresh
-      if (!tabData || tabData.partialData || tabData.waitingForExtraction || tabData.isLoading) {
-        // Send message to content script to extract data
-        logger.info('SeoDataController', `No complete data found for tab ${tabId}, initiating extraction`);
-        this.triggerContentScriptExtraction(tabId, tabUrl);
-      }
-
-      // If we still don't have data after attempting extraction, check storage
       if (!tabData) {
-        logger.info('SeoDataController', `Checking storage for data for tab ${tabId}, url ${tabUrl}`);
-        this.checkStorageForSeoData(tabId, tabUrl, tabUrl, sendResponse); // Use current URL as fallback instead of lastKnownUrl
+        // Send message to content script to extract data
+        logger.info('SeoDataController', `No data found for tab ${tabId}, initiating extraction`);
+        this.triggerContentScriptExtraction(tabId, tabUrl);
+        
+        // Return loading state to popup
+        sendResponse({ 
+          success: true,
+          data: {
+            url: tabUrl,
+            isLoading: true,
+            waitingForExtraction: true,
+            needsRefresh: true,
+            timestamp: Date.now()
+          }
+        });
         return;
       }
-
-      // Check if we have any data, even if it's partial/loading
-      if (tabData) {
-        // If data exists but is waiting for extraction, mark it as partial
-        if (tabData.waitingForExtraction || tabData.isLoading) {
-          logger.info('SeoDataController', `Found partial data for tab ${tabId}, marked as loading`);
-          tabData.partialData = true;
-          tabData.isLoadingSpa = true;
-
-          // If this is a new SPA detection with no real data yet, mark it specially
-          if (!tabData.title && tabData.isSpaDetected) {
-            tabData.freshSpaNavigation = true;
-          }
-        }
-        // If extraction failed, mark it as error
-        else if (tabData.extractionFailed) {
-          logger.info('SeoDataController', `Found data with extraction failure for tab ${tabId}`);
-          tabData.error = tabData.error || "Failed to extract data from page";
-        }
-
-        logger.info('SeoDataController', `Returning data for tab ${tabId}, partial: ${!!tabData.partialData}`);
+      
+      // If data exists but is partial/loading, still return it
+      if (tabData.partialData || tabData.waitingForExtraction || tabData.isLoading) {
+        logger.info('SeoDataController', `Found partial/loading data for tab ${tabId}`);
         sendResponse({ success: true, data: tabData });
         return;
       }
 
-      // By default, send a null response to indicate refresh is needed
-      logger.info('SeoDataController', `No data found for tab ${tabId}, returning null`);
+      // We have data, check if it needs special handling
+      if (tabData) {
+        // If extraction failed, mark it as error
+        if (tabData.extractionFailed) {
+          logger.info('SeoDataController', `Found data with extraction failure for tab ${tabId}`);
+          tabData.error = tabData.error || "Failed to extract data from page";
+        }
+
+        logger.info('SeoDataController', `Returning existing data for tab ${tabId}`);
+        sendResponse({ success: true, data: tabData });
+        return;
+      }
+
+      // This should not happen as we handle no data case above
+      logger.warn('SeoDataController', `Unexpected: no data found for tab ${tabId}`);
       sendResponse({ 
         success: true,
         data: {
@@ -141,16 +113,8 @@ class SeoDataControllerClass {
    */
   triggerContentScriptExtraction(tabId, tabUrl) {
     try {
-      // First, create placeholder data in storage
-      const placeholderData = {
-        url: tabUrl,
-        isLoading: true,
-        waitingForExtraction: true,
-        timestamp: Date.now()
-      };
-      
-      // Save placeholder to memory
-      StorageService.setTabData(tabId, tabUrl, placeholderData);
+      // Don't create placeholder data - let the actual data come from content script
+      logger.info('SeoDataController', `Triggering content script extraction for tab ${tabId}, url ${tabUrl}`);
       
       // Try to communicate with the content script
       chrome.tabs.sendMessage(tabId, { 
@@ -163,25 +127,31 @@ class SeoDataControllerClass {
           
           // Attempt to inject content script
           try {
-            chrome.scripting.executeScript({
-              target: { tabId: tabId },
-              files: ['content.bundle.js']
-            }, () => {
-              if (chrome.runtime.lastError) {
-                logger.error('SeoDataController', `Failed to inject content script: ${chrome.runtime.lastError.message}`);
-                return;
-              }
-              
-              // Wait a bit for content script to initialize
-              setTimeout(() => {
-                // Try again after injection
-                chrome.tabs.sendMessage(tabId, { 
-                  action: "extractSEOData",
-                  background: true,
-                  forceRefresh: true // Force refresh
-                });
-              }, 500);
-            });
+            // Get content script file from manifest
+            const manifest = chrome.runtime.getManifest();
+            const contentScripts = manifest.content_scripts;
+            
+            if (contentScripts && contentScripts.length > 0 && contentScripts[0].js) {
+              chrome.scripting.executeScript({
+                target: { tabId: tabId },
+                files: contentScripts[0].js
+              }, () => {
+                if (chrome.runtime.lastError) {
+                  logger.error('SeoDataController', `Failed to inject content script: ${chrome.runtime.lastError.message}`);
+                  return;
+                }
+                
+                // Wait a bit for content script to initialize
+                setTimeout(() => {
+                  // Try again after injection
+                  chrome.tabs.sendMessage(tabId, { 
+                    action: "extractSEOData",
+                    background: true,
+                    forceRefresh: true // Force refresh
+                  });
+                }, 500);
+              });
+            }
           } catch (err) {
             logger.error('SeoDataController', `Error injecting content script: ${err.message}`);
           }

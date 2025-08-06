@@ -59,10 +59,17 @@ export const logger = {
   debug(module, message, data) {
     // Only log in development mode
     // Check if we're in production by looking at the manifest URL
-    const isProd = typeof chrome !== 'undefined' && 
-                   chrome.runtime && 
-                   chrome.runtime.getManifest && 
-                   !chrome.runtime.getManifest().key; // Dev extensions have a 'key' field
+    let isProd = false;
+    try {
+      isProd = typeof chrome !== 'undefined' && 
+               chrome.runtime && 
+               chrome.runtime.getManifest && 
+               typeof chrome.runtime.getManifest === 'function' &&
+               !chrome.runtime.getManifest().key; // Dev extensions have a 'key' field
+    } catch (e) {
+      // If chrome.runtime is not available, assume dev mode
+      isProd = false;
+    }
     
     if (!isProd) {
       const formattedMessage = `[${module}] DEBUG: ${message}`;

@@ -12,6 +12,32 @@ class DataFetchingService {
   constructor() {
     this.TIMEOUT_MS = 10000;
     this.RETRY_DELAY_MS = 300;
+    this.setupMessageListener();
+  }
+  
+  /**
+   * Set up message listener for SPA data updates
+   */
+  setupMessageListener() {
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.action === 'spaDataUpdated') {
+        logger.info('DataFetching', 'Received SPA data update notification');
+        // Reload data from background
+        this.loadFromBackground(message.url);
+        return false;
+      }
+      
+      // Also listen for general data updates
+      if (message.action === 'dataUpdated') {
+        logger.info('DataFetching', 'Received data update notification');
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs[0]?.url) {
+            this.loadFromBackground(tabs[0].url);
+          }
+        });
+        return false;
+      }
+    });
   }
 
   /**
@@ -83,10 +109,13 @@ class DataFetchingService {
       // Process and validate data
       const processedData = await dataService.processData(data);
       
+      // Check if data indicates loading state
+      const isStillLoading = processedData.isLoading || processedData.waitingForExtraction || processedData.needsRefresh;
+      
       // Update store
       store.setState({
         pageData: processedData,
-        isLoading: false
+        isLoading: isStillLoading
       });
 
       logger.info('DataFetching', 'Data loaded successfully');
@@ -211,16 +240,24 @@ class DataFetchingService {
    */
   async injectContentScript(tabId) {
     return new Promise((resolve, reject) => {
-      chrome.scripting.executeScript({
-        target: { tabId },
-        files: ['content.bundle.js']
-      }, () => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-        } else {
-          resolve();
-        }
-      });
+      // Get content script file from manifest
+      const manifest = chrome.runtime.getManifest();
+      const contentScripts = manifest.content_scripts;
+      
+      if (contentScripts && contentScripts.length > 0 && contentScripts[0].js) {
+        chrome.scripting.executeScript({
+          target: { tabId },
+          files: contentScripts[0].js
+        }, () => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve();
+          }
+        });
+      } else {
+        reject(new Error('No content scripts found in manifest'));
+      }
     });
   }
 
