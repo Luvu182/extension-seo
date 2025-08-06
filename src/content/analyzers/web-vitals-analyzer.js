@@ -257,19 +257,19 @@ export class WebVitalsAnalyzer {
 
     logger.info('WebVitalsAnalyzer', `Sending metric: ${metricName}=${cappedDisplayValue}${displayUnit} (raw: ${value.toFixed(2)}ms)`);
 
-    messaging.sendToBackground(message)
-      .then(response => {
-        if (response && response.success) {
-          // logger.debug('WebVitalsAnalyzer', `Metric ${metricName} sent successfully`);
-        } else {
-          logger.warn('WebVitalsAnalyzer', `Background did not confirm receipt for ${metricName}`);
-        }
+    messaging.sendToBackground(message, false) // Don't expect response
+      .then(() => {
+        // Successfully sent
       })
       .catch(error => {
-        // Only log error if it's not the common "Receiving end does not exist" during page unload
-        if (!error.message?.includes('Receiving end does not exist')) {
-           logger.error('WebVitalsAnalyzer', `Error sending metric ${metricName}:`, error);
+        // Only log error if it's not the common runtime unavailable error
+        const errorMessage = error?.message || '';
+        if (!errorMessage.includes('Chrome runtime not available') && 
+            !errorMessage.includes('Receiving end does not exist') &&
+            !errorMessage.includes('message port closed')) {
+          logger.warn('WebVitalsAnalyzer', `Failed to send ${metricName}:`, error.message);
         }
+        // Otherwise silently ignore - this is expected during page unload or extension reload
       });
   }
 

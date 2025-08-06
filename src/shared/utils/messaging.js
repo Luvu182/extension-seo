@@ -29,7 +29,8 @@ export const messaging = {
 
     // Kiểm tra xem runtime có sẵn sàng không trước khi thử gửi
     if (!this.isRuntimeAvailable()) {
-      logger.error('messaging', 'Chrome runtime not available');
+      // Only log as debug, not error - this is expected during extension reload
+      logger.debug('messaging', 'Chrome runtime not available');
       return Promise.reject(new Error('Chrome runtime not available'));
     }
 
@@ -68,7 +69,7 @@ export const messaging = {
       return new Promise((resolve, reject) => {
         // Kiểm tra lại một lần nữa trước khi gửi
         if (!this.isRuntimeAvailable()) {
-          logger.error('messaging', 'Chrome runtime not available before sending');
+          logger.debug('messaging', 'Chrome runtime not available before sending');
           return reject(new Error('Chrome runtime not available'));
         }
 
