@@ -5,13 +5,14 @@ import React from 'react';
 // Import dependencies
 import { styles } from '../styles.js';
 import { getScoreColor } from '../utils.js';
+import { createMemoComponent, useMemoValue } from '../utils/react-helpers.js';
 
 /**
  * Component for displaying SEO score card
  * @param {Object} data - The page data containing SEO score information
  * @returns {React.Element} - The SEO score card component
  */
-export const SeoScoreCard = ({ data }) => {
+const SeoScoreCardComponent = ({ data }) => {
     // Define the new SEO scoring categories based on requirements
     const calculateContentScore = (data) => {
         // Total possible: 45 points
@@ -332,10 +333,16 @@ export const SeoScoreCard = ({ data }) => {
         return score;
     };
     
-    // Calculate the three main scores
-    const contentElementsScore = calculateContentScore(data);
-    const technicalSeoScore = calculateTechnicalScore(data);
-    const structureLinkingScore = calculateStructureScore(data);
+    // Calculate the three main scores with memoization
+    const scores = useMemoValue(() => ({
+        contentElements: calculateContentScore(data),
+        technicalSeo: calculateTechnicalScore(data),
+        structureLinking: calculateStructureScore(data)
+    }), [data]);
+    
+    const contentElementsScore = scores.contentElements;
+    const technicalSeoScore = scores.technicalSeo;
+    const structureLinkingScore = scores.structureLinking;
     
     // Define the scoring categories
     const factorScores = {
@@ -557,3 +564,6 @@ export const SeoScoreCard = ({ data }) => {
         )
     );
 };
+
+// Export memoized component
+export const SeoScoreCard = createMemoComponent(SeoScoreCardComponent);

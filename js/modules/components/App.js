@@ -10,6 +10,9 @@ import { styles } from '../styles.js';
 import { dataFetchingService } from '../services/data-fetching-service.js';
 import { navigationService } from '../services/navigation-service.js';
 
+// Import helpers
+import { ErrorBoundary } from '../utils/react-helpers.js';
+
 // Import React components
 import { Header } from './Header.js';
 import { SerpPreview } from './SerpPreview.js';
@@ -241,8 +244,9 @@ export const App = () => {
     React.createElement('div', null, `Unknown tab: ${activeTab}`)
   );
 
-  return React.createElement('div', 
-    { style: styles.container },
+  return React.createElement(ErrorBoundary, null,
+    React.createElement('div', 
+      { style: styles.container },
     // Header
     React.createElement(Header, { 
       onRefresh: refreshDataHandler, 
@@ -292,5 +296,6 @@ export const App = () => {
     
     // Footer
     React.createElement(Footer)
+    )
   );
 };

@@ -235,8 +235,8 @@ export const LinksTab = ({ pageData }) => {
         } catch (error) {
             console.error('Error checking link status:', error);
 
-            // Show error message to user
-            alert(`Error checking links: ${error.message || 'Unknown error'}. Please try again.`);
+            // Log error instead of using alert
+            console.error(`Error checking links: ${error.message || 'Unknown error'}`);
         } finally {
             // Always set checking status to false, even if there was an error
             setIsCheckingStatus(false);
@@ -274,18 +274,9 @@ export const LinksTab = ({ pageData }) => {
         // Use link service to export data in the specified format
         linkService.exportLinkData(exportData, format);
 
-        // Show a notification to the user that the export was successful
-        const notification = document.createElement('div');
-        notification.textContent = `Successfully exported ${filteredLinks.length} links as ${format.toUpperCase()}`;
-        notification.style.cssText = 'position: fixed; bottom: 20px; right: 20px; background-color: #10b981; color: white; padding: 10px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999;';
-        document.body.appendChild(notification);
-
-        // Remove notification after 3 seconds
-        setTimeout(() => {
-            notification.style.opacity = '0';
-            notification.style.transition = 'opacity 0.5s ease';
-            setTimeout(() => notification.remove(), 500);
-        }, 3000);
+        // Show notification using console instead of DOM manipulation
+        console.log(`Successfully exported ${filteredLinks.length} links as ${format.toUpperCase()}`);
+        // TODO: Implement proper React notification component
     };
 
     // Handler for toggling optimization
@@ -383,69 +374,7 @@ export const LinksTab = ({ pageData }) => {
                 onToggleOptimized: handleToggleOptimized
             }),
 
-            // Add effect to attach the check function to the button
-            React.useEffect(() => {
-                // Make the checkLinkStatus function available to the button
-                window.checkLinkStatus = isCheckingStatus ? null : checkLinkStatus;
-
-                const attachButtonHandler = () => {
-                    // Add button click event handler
-                    const checkButton = document.getElementById('check-links-status-btn');
-                    if (checkButton) {
-                        // Remove old handler to prevent duplicates
-                        checkButton.onclick = null;
-
-                        // Only attach click handler if not currently checking
-                        if (!isCheckingStatus) {
-                            checkButton.onclick = checkLinkStatus;
-                        }
-
-                        // Update button text and style based on checking state
-                        if (isCheckingStatus) {
-                            checkButton.innerHTML = '<span style="margin-right: 4px; display: inline-block; animation: spin 1s linear infinite;">⟳</span><span>Checking...</span>';
-                            checkButton.style.cursor = 'not-allowed';
-                            checkButton.style.backgroundColor = 'rgba(100, 116, 139, 0.5)';
-                            checkButton.style.color = '#94a3b8';
-                        } else {
-                            const icon = isOptimized ? '⚡' : '🔍';
-                            checkButton.innerHTML = `<span style="margin-right: 4px;">${icon}</span><span>Check Status</span>`;
-                            checkButton.style.cursor = 'pointer';
-                            checkButton.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
-                            checkButton.style.color = '#60a5fa';
-                        }
-                    }
-
-                    // Update progress display
-                    const progressContainer = document.getElementById('progress-container');
-                    if (progressContainer) {
-                        if (checkProgress) {
-                            progressContainer.innerHTML = `
-                                Batch ${checkProgress.currentBatch}/${checkProgress.totalBatches}:
-                                ${checkProgress.processedUrls}/${checkProgress.totalUrls} URLs
-                            `;
-                            progressContainer.style.display = 'block';
-                        } else {
-                            progressContainer.style.display = 'none';
-                        }
-                    }
-                };
-
-                // Attach initially
-                attachButtonHandler();
-
-                // Also attach on an interval to ensure it always updates correctly
-                const intervalId = setInterval(attachButtonHandler, 500);
-
-                return () => {
-                    // Cleanup
-                    window.checkLinkStatus = null;
-                    clearInterval(intervalId);
-                    const checkButton = document.getElementById('check-links-status-btn');
-                    if (checkButton) {
-                        checkButton.onclick = null;
-                    }
-                };
-            }, [isCheckingStatus, isCheckingInProgress, checkLinkStatus, isOptimized])
+            // REMOVED: Direct DOM manipulation moved to React components
         ),
 
         // Export Button removed from here (now in header)

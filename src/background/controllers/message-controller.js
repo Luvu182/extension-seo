@@ -2,6 +2,7 @@
 
 import { logger } from '../../shared/utils/logger.js';
 import { MESSAGE_TYPES } from '../../shared/constants.js';
+import { MessageValidator } from '../../shared/utils/message-validator.js';
 import { SeoDataController } from './seo-data-controller.js';
 import { WebVitalsController } from './web-vitals-controller.js';
 import { LinkCheckerController } from './link-checker-controller.js';
@@ -36,10 +37,21 @@ class MessageControllerClass {
    * @returns {boolean} - Whether to keep the message channel open
    */
   handleMessage(message, sender, sendResponse) {
-    if (!message || !message.action) {
-      logger.warn('MessageController', 'Received message without action');
+    // Use MessageValidator for comprehensive validation
+    const requireTab = [
+      MESSAGE_TYPES.CONTENT_UPDATE,
+      MESSAGE_TYPES.WEB_VITALS_RESULT,
+      'spa_navigation_processed',
+      'spa_navigation_skipped',
+      MESSAGE_TYPES.CONTENT_ERROR
+    ].includes(message?.action);
+
+    const validation = MessageValidator.validate(message, sender, { requireTab });
+    
+    if (!validation.valid) {
+      logger.warn('MessageController', `Message validation failed: ${validation.error}`, { message, sender });
       if (sendResponse) {
-        sendResponse({ success: false, error: 'No action specified' });
+        sendResponse({ success: false, error: validation.error });
       }
       return false;
     }
@@ -111,12 +123,14 @@ class MessageControllerClass {
         }
         return false;
 
-      // --- START Process Images for Size Handler (using Vercel API) ---
+      // --- REMOVED: External API dependency for security ---
+      // Image size processing should be done locally or through a secure proxy
       case 'process_images_for_size':
-        // MUST return true here to indicate an async response is expected
-        this.handleProcessImagesForSize(message, sender, sendResponse);
-        return true;
-      // --- END Process Images for Size Handler ---
+        logger.warn('MessageController', 'Image size processing via external API is disabled for security');
+        if (sendResponse) {
+          sendResponse({ success: false, error: 'Image size processing is currently disabled' });
+        }
+        return false;
 
       // Robots.txt related actions
       case 'fetchRobotsTxt':
@@ -144,7 +158,9 @@ class MessageControllerClass {
    * @param {Function} sendResponse - Function to send response
    * @returns {boolean} - Whether to keep the message channel open
    */
-  async handleProcessImagesForSize(message, sender, sendResponse) {
+  // DEPRECATED: Removed for security - external API dependency
+  // This method sent user data to an unverified external API
+  async handleProcessImagesForSize_DEPRECATED(message, sender, sendResponse) {
     // --- START: Log sender object for debugging ---
     logger.debug('MessageController', '[handleProcessImagesForSize] Received sender object:', JSON.stringify(sender, null, 2));
     // --- END: Log sender object ---

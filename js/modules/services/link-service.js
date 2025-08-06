@@ -162,7 +162,8 @@ export const linkService = {
         // Initialize non-HTTP URLs with appropriate status
         linkObjects.forEach(link => {
             if (!link.href) {
-                statuses[link.href] = { status: 'empty', statusCode: null };
+                // Skip links without href
+                return;
             } else if (link.href === '#') {
                 statuses[link.href] = { status: 'hash-only', statusCode: null };
             } else if (!link.href.startsWith('http://') && !link.href.startsWith('https://')) {

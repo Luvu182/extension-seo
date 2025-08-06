@@ -41,39 +41,73 @@ class CleanupServiceClass {
    */
   cleanupOldData() {
     const seoDataStore = StorageService.seoDataStore;
+    const now = Date.now();
+    const MAX_AGE = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+    let totalRemoved = 0;
     
     for (const tabId in seoDataStore) {
       const urlsForTab = Object.keys(seoDataStore[tabId]);
-      
-      // Skip tabs with few URLs
-      if (urlsForTab.length <= CLEANUP.MAX_URLS_PER_TAB) continue;
-      
-      logger.info('CleanupService', `Tab ${tabId} has ${urlsForTab.length} URLs. Cleaning up old data.`);
+      let removedForTab = 0;
       
       // Collect URLs with timestamps
       const urlsWithTimestamps = urlsForTab.map(url => {
         const data = seoDataStore[tabId][url];
-        const timestamp = data.lastUpdate?.timestamp || 0;
-        return { url, timestamp };
+        const timestamp = data.lastUpdate?.timestamp || data.timestamp || 0;
+        const age = now - timestamp;
+        return { url, timestamp, age };
       });
       
-      // Sort by timestamp, oldest first
-      urlsWithTimestamps.sort((a, b) => a.timestamp - b.timestamp);
-      
-      // Keep only the most recent URLs, delete the oldest ones
-      const urlsToRemove = urlsWithTimestamps
-        .slice(0, urlsWithTimestamps.length - CLEANUP.MAX_URLS_PER_TAB)
+      // First, remove old data (older than MAX_AGE)
+      const oldUrls = urlsWithTimestamps
+        .filter(item => item.age > MAX_AGE)
         .map(item => item.url);
       
-      // Remove from memory and storage
-      for (const url of urlsToRemove) {
-        logger.info('CleanupService', `Removing old data for tab ${tabId}, url ${url}`);
-        delete seoDataStore[tabId][url];
-        
-        // Also remove from chrome.storage
-        const storageKey = `tab_${tabId}_${encodeURIComponent(url)}`;
-        chrome.storage.local.remove(storageKey);
+      if (oldUrls.length > 0) {
+        logger.info('CleanupService', `Removing ${oldUrls.length} old URLs (>2hrs) for tab ${tabId}`);
+        for (const url of oldUrls) {
+          delete seoDataStore[tabId][url];
+          
+          // Also remove from chrome.storage
+          const storageKey = `tab_${tabId}_${encodeURIComponent(url)}`;
+          chrome.storage.local.remove(storageKey);
+          removedForTab++;
+        }
       }
+      
+      // Then, if still too many URLs, remove oldest ones
+      const remainingUrls = urlsWithTimestamps.filter(item => item.age <= MAX_AGE);
+      if (remainingUrls.length > CLEANUP.MAX_URLS_PER_TAB) {
+        logger.info('CleanupService', `Tab ${tabId} has ${remainingUrls.length} recent URLs. Removing oldest to stay under limit.`);
+        
+        // Sort by timestamp, oldest first
+        remainingUrls.sort((a, b) => a.timestamp - b.timestamp);
+        
+        // Remove oldest URLs to stay under limit
+        const urlsToRemove = remainingUrls
+          .slice(0, remainingUrls.length - CLEANUP.MAX_URLS_PER_TAB)
+          .map(item => item.url);
+        
+        for (const url of urlsToRemove) {
+          delete seoDataStore[tabId][url];
+          
+          // Also remove from chrome.storage
+          const storageKey = `tab_${tabId}_${encodeURIComponent(url)}`;
+          chrome.storage.local.remove(storageKey);
+          removedForTab++;
+        }
+      }
+      
+      // If tab has no URLs left, remove the tab entry
+      if (Object.keys(seoDataStore[tabId]).length === 0) {
+        delete seoDataStore[tabId];
+        logger.info('CleanupService', `Removed empty tab ${tabId}`);
+      }
+      
+      totalRemoved += removedForTab;
+    }
+    
+    if (totalRemoved > 0) {
+      logger.info('CleanupService', `Cleanup complete. Removed ${totalRemoved} old entries.`);
     }
   }
 }

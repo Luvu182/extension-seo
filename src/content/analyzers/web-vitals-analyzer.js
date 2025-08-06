@@ -12,6 +12,7 @@ export class WebVitalsAnalyzer {
   static lcpObserver = null;
   static clsObserver = null;
   static fidObserver = null;
+  static fcpObserver = null; // Add FCP observer reference
   static cumulativeLayoutShift = 0;
 
   /**
@@ -173,9 +174,11 @@ export class WebVitalsAnalyzer {
    */
   static observeFCP() {
     try {
-      // FCP observer (similar structure to LCP/FID)
+      if (this.fcpObserver) this.fcpObserver.disconnect(); // Disconnect previous observer
+      
       if (window.PerformanceObserver && PerformanceObserver.supportedEntryTypes?.includes('paint')) {
-        const fcpObserver = new PerformanceObserver((entryList) => {
+        logger.info('WebVitalsAnalyzer', 'Setting up FCP observer');
+        this.fcpObserver = new PerformanceObserver((entryList) => {
           const entries = entryList.getEntriesByName('first-contentful-paint');
           if (entries.length > 0) {
             const fcpEntry = entries[0];
@@ -183,10 +186,13 @@ export class WebVitalsAnalyzer {
             logger.info('WebVitalsAnalyzer', `Observed FCP = ${fcp.toFixed(2)}ms`);
             this.sendMetricToBackground('fcp', fcp);
             // FCP is measured only once, disconnect observer
-            fcpObserver.disconnect();
+            if (this.fcpObserver) {
+              this.fcpObserver.disconnect();
+              this.fcpObserver = null;
+            }
           }
         });
-        fcpObserver.observe({ type: 'paint', buffered: true });
+        this.fcpObserver.observe({ type: 'paint', buffered: true });
       } else {
         logger.warn('WebVitalsAnalyzer', 'Browser does not support FCP measurement via PerformanceObserver.');
       }
@@ -285,7 +291,10 @@ export class WebVitalsAnalyzer {
       this.fidObserver.disconnect();
       this.fidObserver = null;
     }
-    // Note: FCP observer disconnects itself after first measurement
+    if (this.fcpObserver) {
+      this.fcpObserver.disconnect();
+      this.fcpObserver = null;
+    }
 
     this.webVitalsInitiated = false;
     this.cumulativeLayoutShift = 0;

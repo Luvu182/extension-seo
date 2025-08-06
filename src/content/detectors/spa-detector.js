@@ -19,6 +19,17 @@ export class SpaDetector {
   lastNavigationTime = 0;
   navigationsInProgress = new Set();
   mutationObserver = null;
+  
+  // Store original history methods
+  originalPushState = null;
+  originalReplaceState = null;
+  
+  // Store event listener references for cleanup
+  popstateHandler = null;
+  hashchangeHandler = null;
+  pushstateHandler = null;
+  replacestateHandler = null;
+  visibilityHandler = null;
 
   /**
    * Initialize the SPA detector
@@ -53,14 +64,20 @@ export class SpaDetector {
    * Set up event listeners for SPA detection
    */
   setupEventListeners() {
+    // Create bound handlers for cleanup
+    this.popstateHandler = () => this.handleSpaNavigation(SPA_SOURCES.POPSTATE);
+    this.hashchangeHandler = () => this.handleSpaNavigation(SPA_SOURCES.HASHCHANGE);
+    this.pushstateHandler = () => this.handleSpaNavigation(SPA_SOURCES.PUSHSTATE);
+    this.replacestateHandler = () => this.handleSpaNavigation(SPA_SOURCES.REPLACESTATE);
+    
     // Navigation events
-    window.addEventListener('popstate', () => this.handleSpaNavigation(SPA_SOURCES.POPSTATE));
-    window.addEventListener('hashchange', () => this.handleSpaNavigation(SPA_SOURCES.HASHCHANGE)); // Keep hashchange for now, might be needed for some SPAs
-    window.addEventListener('pushstate', () => this.handleSpaNavigation(SPA_SOURCES.PUSHSTATE));
-    window.addEventListener('replacestate', () => this.handleSpaNavigation(SPA_SOURCES.REPLACESTATE));
+    window.addEventListener('popstate', this.popstateHandler);
+    window.addEventListener('hashchange', this.hashchangeHandler);
+    window.addEventListener('pushstate', this.pushstateHandler);
+    window.addEventListener('replacestate', this.replacestateHandler);
     
     // Visibility change (when user returns to tab)
-    document.addEventListener('visibilitychange', () => {
+    this.visibilityHandler = () => {
       if (document.visibilityState === 'visible') {
         logger.info('SpaDetector', 'Tab became visible, checking for changes');
         
@@ -78,7 +95,9 @@ export class SpaDetector {
            this.handleSpaNavigation(SPA_SOURCES.VISIBILITY, true); 
         }
       }
-    });
+    };
+    
+    document.addEventListener('visibilitychange', this.visibilityHandler);
     
     logger.info('SpaDetector', 'Event listeners attached');
   }
@@ -393,15 +412,59 @@ export class SpaDetector {
    * Clean up resources when no longer needed
    */
   cleanup() {
+    logger.info('SpaDetector', 'Cleaning up...');
+    
+    // Stop URL watcher
     this.stopUrlWatcher();
+    
+    // Clear navigation timeout
     if (this.navigationTimeoutId) {
       clearTimeout(this.navigationTimeoutId);
       this.navigationTimeoutId = null;
     }
+    
+    // Disconnect mutation observer
     if (this.mutationObserver) {
       this.mutationObserver.disconnect();
       this.mutationObserver = null;
     }
+    
+    // Remove event listeners
+    if (this.popstateHandler) {
+      window.removeEventListener('popstate', this.popstateHandler);
+      this.popstateHandler = null;
+    }
+    if (this.hashchangeHandler) {
+      window.removeEventListener('hashchange', this.hashchangeHandler);
+      this.hashchangeHandler = null;
+    }
+    if (this.pushstateHandler) {
+      window.removeEventListener('pushstate', this.pushstateHandler);
+      this.pushstateHandler = null;
+    }
+    if (this.replacestateHandler) {
+      window.removeEventListener('replacestate', this.replacestateHandler);
+      this.replacestateHandler = null;
+    }
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
+    
+    // Restore original history methods
+    if (this.originalPushState) {
+      history.pushState = this.originalPushState;
+      this.originalPushState = null;
+    }
+    if (this.originalReplaceState) {
+      history.replaceState = this.originalReplaceState;
+      this.originalReplaceState = null;
+    }
+    
+    // Clear navigation tracking
+    this.navigationsInProgress.clear();
+    
+    logger.info('SpaDetector', 'Cleanup complete');
   }
 }
 

@@ -31,7 +31,10 @@ export const LinkTable = ({
     onStatusFilterChange,
     filteredCount,
     isOptimized = false,
-    onToggleOptimized
+    onToggleOptimized,
+    isCheckingStatus = false,
+    checkProgress = null,
+    onCheckStatus
 }) => {
     // Force render on select change to fix dropdown sync issues
     const [renderKey, setRenderKey] = React.useState(0);
@@ -346,17 +349,10 @@ export const LinkTable = ({
                         const newValue = e.target.value;
                         console.log('Filter changed:', newValue);
                         
-                        // Force immediate UI update
-                        document.querySelector('select').value = newValue;
-                        
                         if (onStatusFilterChange) {
-                            // Use direct DOM to avoid React batching/delays
-                            setTimeout(() => {
-                                onStatusFilterChange(newValue);
-                                
-                                // Force re-render after state update
-                                setRenderKey(prev => prev + 1);
-                            }, 0);
+                            onStatusFilterChange(newValue);
+                            // Force re-render after state update
+                            setRenderKey(prev => prev + 1);
                         }
                     },
                     style: {
@@ -495,25 +491,23 @@ export const LinkTable = ({
                 }
             }, [
                 // Progress info (hidden by default)
-                React.createElement('div', {
+                checkProgress && React.createElement('div', {
                     key: 'progress-container',
-                    id: 'progress-container',
                     style: {
                         fontSize: '0.75rem',
-                        color: '#64748b',
-                        display: 'none' // Hidden by default
+                        color: '#64748b'
                     }
-                }),
+                }, `Batch ${checkProgress.currentBatch}/${checkProgress.totalBatches}: ${checkProgress.processedUrls}/${checkProgress.totalUrls} URLs`),
                 React.createElement('button', {
                     key: 'check-btn',
-                    id: 'check-links-status-btn',
+                    disabled: isCheckingStatus,
                     style: {
                         padding: '6px 12px',
-                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                        color: '#60a5fa',
+                        backgroundColor: isCheckingStatus ? 'rgba(100, 116, 139, 0.5)' : 'rgba(59, 130, 246, 0.2)',
+                        color: isCheckingStatus ? '#94a3b8' : '#60a5fa',
                         border: 'none',
                         borderRadius: '4px',
-                        cursor: 'pointer',
+                        cursor: isCheckingStatus ? 'not-allowed' : 'pointer',
                         fontSize: '0.75rem',
                         fontWeight: '500',
                         display: 'flex',
@@ -521,20 +515,23 @@ export const LinkTable = ({
                         justifyContent: 'center',
                         gap: '6px'
                     },
-                    onClick: () => {
-                        // This function will be attached from the links-tab.js
-                        if (window.checkLinkStatus) {
-                            window.checkLinkStatus();
-                        }
-                    }
+                    onClick: isCheckingStatus ? undefined : onCheckStatus
                 }, [
-                    React.createElement('span', {
-                        style: { 
-                            fontSize: '0.875rem', 
-                            marginRight: '4px' 
-                        }
-                    }, isOptimized ? '⚡' : '🔍'),
-                    React.createElement('span', {}, 'Check Status')
+                    isCheckingStatus ? 
+                        React.createElement('span', {
+                            style: { 
+                                display: 'inline-block',
+                                animation: 'spin 1s linear infinite',
+                                marginRight: '4px'
+                            }
+                        }, '⟳') :
+                        React.createElement('span', {
+                            style: { 
+                                fontSize: '0.875rem', 
+                                marginRight: '4px' 
+                            }
+                        }, isOptimized ? '⚡' : '🔍'),
+                    React.createElement('span', {}, isCheckingStatus ? 'Checking...' : 'Check Status')
                 ])
             ])
         ]);

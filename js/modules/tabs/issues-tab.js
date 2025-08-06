@@ -609,8 +609,8 @@ export const IssuesTab = ({ pageData }) => {
         // Use issue service to export data
         issueService.exportIssuesData(exportData, 'json');
 
-        // Show notification
-        alert('Issues exported successfully!');
+        // Log success message instead of alert
+        console.log('Issues exported successfully!');
     };
 
     let statusIconChar = '✅';
